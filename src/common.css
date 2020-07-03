@@ -1,0 +1,17 @@
+main {
+  border: dashed black 1px;
+  padding: 0.1em;
+}
+
+section {
+  padding: 0 1em;
+  margin-bottom: 0.5em;
+  border-top: solid goldenrod thick;
+  background: cornsilk;
+}
+
+section::before {
+  display: block;
+  font-size: smaller;
+  content: 'Section';
+}

@@ -93,10 +93,10 @@ function removeElement(tasker, parent, fromIndex) {
 
 /* vdom ops */
 
-export function vdomInsert(beforeParent, insertedList, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
+export function vdomInsert(beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   const isInserted = beforeIndex < 0;
-  const movedVNode = isInserted ? insertedList[~beforeIndex] : beforeParent.children[beforeIndex];
-  const referVNode = isInserted ? insertedList[~afterNextBeforeIndex] : beforeParent.children[afterNextBeforeIndex];
+  const movedVNode = isInserted ? mountingSet[~beforeIndex] : beforeParent.children[beforeIndex];
+  const referVNode = isInserted ? mountingSet[~afterNextBeforeIndex] : beforeParent.children[afterNextBeforeIndex];
 
   const task = { type: isInserted ? 'insert' : 'move' };
 
@@ -104,7 +104,7 @@ export function vdomInsert(beforeParent, insertedList, afterParent, beforeIndex,
     case 'ELEMENT':
       Object.assign(task, {
         beforeParent,
-        insertedList,
+        mountingSet,
         afterParent,
         beforeIndex,
         afterIndex,
@@ -114,7 +114,7 @@ export function vdomInsert(beforeParent, insertedList, afterParent, beforeIndex,
     case 'TEXT':
       Object.assign(task, {
         beforeParent,
-        insertedList,
+        mountingSet,
         afterParent,
         beforeIndex,
         afterIndex,
@@ -122,6 +122,7 @@ export function vdomInsert(beforeParent, insertedList, afterParent, beforeIndex,
       });
       return task;
     default:
+      break;
   }
 
   return task;

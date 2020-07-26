@@ -76,13 +76,13 @@ function applyDOMOperationTask(task) {
   }
 }
 
-function applyInsertTask({ beforeParent, insertedList, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex }) {
-  const node = insertedList[~beforeIndex];
+function applyInsertTask({ beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex }) {
+  const node = mountingSet[~beforeIndex];
   const refNode =
     afterNextBeforeIndex === null
       ? null
       : afterNextBeforeIndex < 0
-      ? insertedList[~afterNextBeforeIndex]
+      ? mountingSet[~afterNextBeforeIndex]
       : beforeParent.children[afterNextBeforeIndex];
   const parentNode = afterParent;
 
@@ -103,13 +103,13 @@ function applyInsertTask({ beforeParent, insertedList, afterParent, beforeIndex,
   }
 }
 
-function applyMoveTask({ beforeParent, insertedList, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex }) {
+function applyMoveTask({ beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex }) {
   const node = beforeParent.children[beforeIndex];
   const refNode =
     afterNextBeforeIndex === null
       ? null
       : afterNextBeforeIndex < 0
-      ? insertedList[~afterNextBeforeIndex]
+      ? mountingSet[~afterNextBeforeIndex]
       : beforeParent.children[afterNextBeforeIndex];
   const parentNode = afterParent;
 

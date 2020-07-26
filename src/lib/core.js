@@ -1,11 +1,14 @@
 import { normalizeVNode } from './h';
 import { apply, createDOMOperationTasker } from './tasker';
+import { vdomInsert, vdomMove, vdomRemove, insert } from './vop';
 
 export function mount(vnode, elem) {
   vnode = normalizeVNode(vnode);
   const hackedParentVNode = {
     _isVNode: true,
     _el: elem,
+    _uid: -1,
+    children: [],
   };
   return _update(hackedParentVNode, null, vnode);
 }
@@ -15,6 +18,7 @@ export function refresh(prevnode, vnode, elem) {
   const hackedParentVNode = {
     _isVNode: true,
     _el: elem,
+    _uid: -1,
     children: [],
   };
   return _update(hackedParentVNode, prevnode, vnode);
@@ -26,9 +30,11 @@ function _update(parent, prevnode, vnode) {
   const tasker = createDOMOperationTasker();
   // diffOne(tasker, parent, prevnode, vnode);
   if (prevnode == null && vnode != null) {
-    insert(tasker, parent, vnode);
+    // insert(tasker, parent, vnode);
+    insertOne(tasker, parent, [vnode], parent, -1, 0, null);
+    // diff
   } else if (prevnode != null && vnode == null) {
-    // TODO remove();
+    removeOne();
   } else if (prevnode != null && vnode != null) {
     diffOne(tasker, parent, prevnode, vnode);
   }
@@ -36,80 +42,51 @@ function _update(parent, prevnode, vnode) {
   apply(tasker);
 }
 
-function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
-  const before_marks = new Array(beforeNodes.length);
-  let lastIndex = 0; // 用来存储寻找过程中遇到的最大索引值
-
-  for (let a_i = 0; a_i < afterNodes.length; a_i++) {
-    const a_k = afterNodes[a_i];
-    let b_i = beforeNodes.findIndex(e => e.key === a_k.key);
-    const b_k = beforeNodes[b_i];
-    if (b_i === -1) {
-      // console.log(prevParent);
-      // insert(tasker, prevParent, a_k, a_i);
-      insert(tasker, prevParent, a_k, -1);
-    } else {
-      // if (b_i < lastIndex) {
-      //   move(tasker, prevParent, parent, b_k, b_i, a_i);
-      // } else {
-      //   lastIndex = b_i;
-      //   diffOne(tasker, parent, b_k, a_k);
-      // }
-      move(tasker, prevParent, parent, b_k, a_k, b_i, -1);
-
-      before_marks[b_i] = true;
-    }
-  }
-
-  for (let b_i = 0; b_i < beforeNodes.length; b_i++) {
-    const b_used = !!before_marks[b_i];
-    if (!b_used) {
-      remove(tasker, prevParent, b_i);
-    }
-  }
-}
-
-function diffSelf(tasker, prevnode, vnode) {
-  vnode._el = prevnode._el;
-  // TODO
-  return;
-}
-
-function insert(tasker, parent, vnode, toIndex = -1) {
+function insertOne(tasker, beforeParent, insertedList, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
+  console.assert(beforeIndex < 0);
+  const vnode = insertedList[~beforeIndex];
   switch (vnode.type) {
     case 'ELEMENT':
-      insertElement(tasker, parent, vnode, toIndex);
+      tasker.enqueue(
+        vdomInsert(beforeParent, insertedList, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex)
+      );
+      insertElementChildren(tasker, vnode, vnode.children);
       break;
     case 'TEXT':
-      insertText(tasker, parent, vnode, toIndex);
+      tasker.enqueue(
+        vdomInsert(beforeParent, insertedList, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex)
+      );
       break;
+    // and other cases for different vnode.type
     default:
       break;
   }
 }
 
-function insertChildren(tasker, nextParent) {
-  for (const child of nextParent.children) {
-    insert(tasker, nextParent, child, -1);
+function insertElementChildren(tasker, parent) {
+  const nodes = parent.children;
+  console.assert(parent && nodes);
+  for (let i = 0; i < nodes.length; i++) {
+    // @HACK
+    insertOne(tasker, parent, nodes, parent, ~i, i, null);
   }
 }
 
-function insertElement(tasker, parent, vnode, toIndex) {
-  tasker.insert(parent, vnode, toIndex);
-  insertChildren(tasker, vnode);
-}
-
-function insertText(tasker, parent, vnode, toIndex) {
-  tasker.insert(parent, vnode, toIndex);
+function removeOne() {
+  // TODO
 }
 
 function diffOne(tasker, parent, prevnode, vnode) {
   if (prevnode.type !== vnode.type) {
     const index = parent.children.indexOf(prevnode);
-    remove(parent, prevnode, index);
-    insert(parent, vnode, index);
+    // remove(parent, prevnode, index);
+    // insert(parent, vnode, index);
     return;
   }
+
+  // copy the meta data
+  vnode._el = prevnode._el;
+  vnode._uid = prevnode._uid;
 
   diffSelf(tasker, prevnode, vnode);
 
@@ -127,8 +104,8 @@ function diffOne(tasker, parent, prevnode, vnode) {
 
 function diffOneElement(tasker, parent, prevnode, vnode) {
   if (prevnode.tag !== vnode.tag) {
-    tasker.remove(prevnode);
-    tasker.insert(parent, vnode);
+    // tasker.remove(prevnode);
+    // tasker.insert(parent, vnode);
     diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
   } else {
     diffSelf(tasker, prevnode, vnode);
@@ -140,59 +117,70 @@ function diffOneText(tasker, parent, vnode, toIndex) {
   // tasker.patch
 }
 
-function move(tasker, prevParent, nextParent, prevVNode, nextVNode, fromIndex, toIndex) {
-  if (prevVNode.type !== nextVNode.type) {
-    // TODO if the two types are different
-    remove(parent, prevVNode, fromIndex);
-    insert(parent, nextVNode, toIndex);
-    return;
-  }
-
-  // TODO REMOVE
-  diffSelf(tasker, prevVNode, nextVNode);
-
-  // parent is the previous parent
-  // const _toIndex = toIndex < 0 ? nextParent.children.length + toIndex : toIndex;
-  switch (nextVNode.type) {
-    case 'ELEMENT':
-      moveElement(tasker, prevParent, nextParent, prevVNode, nextVNode, fromIndex, toIndex);
-      break;
-    case 'TEXT':
-      // tasker.move(parent, fromIndex, toIndex);
-      break;
-    default:
-      break;
-  }
+function diffSelf(tasker, prevnode, vnode) {
+  // TODO
+  return;
 }
 
-function moveElement(tasker, prevParent, nextParent, prevVNode, nextVNode, fromIndex, toIndex) {
-  const vnode = nextVNode,
-    prevnode = prevVNode;
-  if (prevnode.tag !== vnode.tag) {
-    tasker.remove(prevnode);
-    tasker.insert(parent, vnode);
-    diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
-  } else {
-    tasker.move(prevParent, fromIndex, toIndex);
-    diffSelf(tasker, prevnode, vnode);
-    diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
-  }
-}
+function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
+  // console.trace('diffChildren');
+  const before_marks = new Array(beforeNodes.length);
+  let lastIndex = 0; // 用来存储寻找过程中遇到的最大索引值
 
-function remove(tasker, parent, fromIndex) {
-  const vnode = parent.children[fromIndex];
-  switch (vnode.type) {
-    case 'ELEMENT':
-      tasker.remove(parent, fromIndex);
-      break;
-    case 'TEXT':
-      tasker.remove(parent, fromIndex);
-      break;
-    default:
-      break;
-  }
-}
+  const childrenMoveRecord = [];
+  const childrenInsertRecord = [];
 
-function removeElement(tasker, parent, fromIndex) {
-  tasker.remove(parent, fromIndex);
+  for (let a_i = 0; a_i < afterNodes.length; a_i++) {
+    const a_k = afterNodes[a_i];
+    let b_i = beforeNodes.findIndex(e => e.key === a_k.key);
+    const b_k = beforeNodes[b_i];
+    if (b_i === -1) {
+      const beforeIndex = -childrenInsertRecord.push(a_k);
+
+      const lastChildrenMoveRecord = childrenMoveRecord[childrenMoveRecord.length - 1];
+      if (lastChildrenMoveRecord && lastChildrenMoveRecord.afterNextBeforeIndex === undefined) {
+        lastChildrenMoveRecord.afterNextBeforeIndex = beforeIndex;
+      }
+
+      childrenMoveRecord.push({ beforeIndex, afterIndex: a_i, afterNextBeforeIndex: undefined });
+    } else {
+      const lastChildrenMoveRecord = childrenMoveRecord[childrenMoveRecord.length - 1];
+      if (lastChildrenMoveRecord && lastChildrenMoveRecord.afterNextBeforeIndex === undefined) {
+        lastChildrenMoveRecord.afterNextBeforeIndex = b_i;
+      }
+
+      if (b_i < lastIndex) {
+        childrenMoveRecord.push({ beforeIndex: b_i, afterIndex: a_i, afterNextBeforeIndex: undefined });
+        diffOne(tasker, parent, b_k, a_k);
+      } else {
+        lastIndex = b_i;
+        diffOne(tasker, parent, b_k, a_k);
+      }
+      before_marks[b_i] = true;
+    }
+  }
+
+  const lastChildrenMoveRecord = childrenMoveRecord[childrenMoveRecord.length - 1];
+  if (lastChildrenMoveRecord && lastChildrenMoveRecord.afterNextBeforeIndex === undefined) {
+    lastChildrenMoveRecord.afterNextBeforeIndex = null; // null stands for the last one.
+  }
+
+  for (let b_i = 0; b_i < beforeNodes.length; b_i++) {
+    const b_used = !!before_marks[b_i];
+    if (b_used) continue;
+    // TODO no more direct vdom operations
+    tasker.enqueue(vdomRemove(prevParent, parent, b_i));
+  }
+
+  const sortedChildrenMoveRecord = childrenMoveRecord.sort((a, b) => b.afterIndex - a.afterIndex);
+  for (const r of sortedChildrenMoveRecord) {
+    if (r.beforeIndex < 0) {
+      insertOne(tasker, prevParent, childrenInsertRecord, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
+    } else {
+      tasker.enqueue(
+        // TODO no more direct vdom operations
+        vdomInsert(prevParent, childrenInsertRecord, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex)
+      );
+    }
+  }
 }

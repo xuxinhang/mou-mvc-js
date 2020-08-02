@@ -1,6 +1,6 @@
 import { normalizeVNode } from './h';
 import { apply, createDOMOperationTasker } from './tasker';
-import { vdomInsert, vdomMove, vdomRemove, insert } from './vop';
+import { vdomInsert, vdomRemove } from './vop';
 
 export function mount(vnode, elem) {
   vnode = normalizeVNode(vnode);
@@ -42,9 +42,11 @@ function _update(parent, prevnode, vnode) {
 function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   console.assert(beforeIndex < 0);
   const vnode = mountingSet[~beforeIndex];
+
   switch (vnode.type) {
-    case 'ELEMENT':
-      tasker.enqueue(vdomInsert(beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex));
+    case 'ELEMENT': {
+      vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
+      // then, mount the children nodes
       const childrenNodes = vnode.children;
       console.assert(vnode && childrenNodes);
       for (let i = 0; i < childrenNodes.length; i++) {
@@ -52,16 +54,27 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
         mountOne(tasker, vnode, childrenNodes, vnode, ~i, i, null);
       }
       break;
-    case 'TEXT':
-      tasker.enqueue(vdomInsert(beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex));
+    }
+    case 'TEXT': {
+      vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
       break;
+    }
+    case 'FRAGMENT': {
+      vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
+      console.assert(vnode && vnode.children);
+      const childrenNodes = vnode.children;
+      for (let i = 0; i < childrenNodes.length; i++) {
+        mountOne(tasker, null, childrenNodes, vnode, ~i, i, i);
+      }
+      break;
+    }
     // and other cases for different vnode.type:
     default:
       break;
   }
 }
 
-function removeOne() {
+function unmountOne() {
   // TODO
 }
 
@@ -147,7 +160,7 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
     const b_used = !!before_marks[b_i];
     if (b_used) continue;
     // TODO no more direct vdom operations
-    tasker.enqueue(vdomRemove(prevParent, parent, b_i));
+    vdomRemove(tasker, prevParent, parent, b_i);
   }
 
   const sortedChildrenMoveRecord = childrenMoveRecord.sort((a, b) => b.afterIndex - a.afterIndex);
@@ -155,10 +168,8 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
     if (r.beforeIndex < 0) {
       mountOne(tasker, prevParent, childrenInsertRecord, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     } else {
-      tasker.enqueue(
-        // TODO no more direct vdom operations
-        vdomInsert(prevParent, childrenInsertRecord, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex)
-      );
+      // TODO no more direct vdom operations
+      vdomInsert(tasker, prevParent, childrenInsertRecord, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     }
   }
 }

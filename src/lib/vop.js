@@ -93,7 +93,15 @@ function removeElement(tasker, parent, fromIndex) {
 
 /* vdom ops */
 
-export function vdomInsert(beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
+export function vdomInsert(
+  tasker,
+  beforeParent,
+  mountingSet,
+  afterParent,
+  beforeIndex,
+  afterIndex,
+  afterNextBeforeIndex
+) {
   const isInserted = beforeIndex < 0;
   const movedVNode = isInserted ? mountingSet[~beforeIndex] : beforeParent.children[beforeIndex];
   const referVNode = isInserted ? mountingSet[~afterNextBeforeIndex] : beforeParent.children[afterNextBeforeIndex];
@@ -102,40 +110,50 @@ export function vdomInsert(beforeParent, mountingSet, afterParent, beforeIndex, 
 
   switch (movedVNode.type) {
     case 'ELEMENT':
-      Object.assign(task, {
-        beforeParent,
-        mountingSet,
-        afterParent,
-        beforeIndex,
-        afterIndex,
-        afterNextBeforeIndex,
+    case 'TEXT': {
+      const node = isInserted ? mountingSet[~beforeIndex] : beforeParent.children[beforeIndex];
+      const refNode =
+        afterNextBeforeIndex === null
+          ? null
+          : afterNextBeforeIndex < 0
+          ? mountingSet[~afterNextBeforeIndex]
+          : beforeParent.children[afterNextBeforeIndex];
+      const parentNode = afterParent;
+
+      tasker.enqueue({
+        type: isInserted ? 'mountNode' : 'moveNode',
+        selfNode: node,
+        parentNode: parentNode,
+        refNode: refNode,
       });
-      return task;
-    case 'TEXT':
-      Object.assign(task, {
-        beforeParent,
-        mountingSet,
-        afterParent,
-        beforeIndex,
-        afterIndex,
-        afterNextBeforeIndex,
-      });
-      return task;
+      break;
+    }
+    case 'FRAGMENT':
+      // do nothing
+      break;
     default:
       break;
   }
-
-  return task;
+  // return task;
 }
 
-export function vdomRemove(beforeParent, afterParent, beforeIndex) {
+export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
   const node = beforeParent.children[beforeIndex];
+  const parentNode = afterParent;
+
+  console.assert(node._el);
+
   switch (node.type) {
     case 'ELEMENT':
-      return { type: 'remove', beforeParent, afterParent, beforeIndex };
-    case 'TEXT':
-      return { type: 'remove', beforeParent, afterParent, beforeIndex };
+    case 'TEXT': {
+      tasker.enqueue({
+        type: 'removeNode',
+        selfNode: node,
+        parentNode: parentNode,
+      });
+      break;
+    }
     default:
-      return {};
+    // return {};
   }
 }

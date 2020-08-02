@@ -62,6 +62,7 @@ class DOMOperationTasker {
 
 function applyDOMOperationTask(task) {
   switch (task.type) {
+    // VNode-compatible task command
     case 'insert':
       applyInsertTask(task);
       break;
@@ -71,8 +72,35 @@ function applyDOMOperationTask(task) {
     case 'move':
       applyMoveTask(task);
       break;
-    default:
-    // do nothing
+    //
+    // Raw HTML DOM task command
+    case 'mountNode': {
+      const { selfNode, parentNode, refNode } = task;
+
+      console.assert(refNode === null || refNode._el);
+      console.assert(parentNode._el);
+
+      mountNode(selfNode, parentNode._el, refNode && refNode._el);
+      break;
+    }
+    case 'moveNode': {
+      const { selfNode, parentNode, refNode } = task;
+
+      console.assert(refNode === null || refNode._el);
+      console.assert(parentNode._el);
+      console.assert(selfNode._el);
+
+      moveNode(selfNode, selfNode._el, parentNode._el, refNode && refNode._el);
+      break;
+    }
+    case 'removeNode': {
+      const { selfNode, parentNode } = task;
+      removeNode(selfNode, selfNode._el, parentNode._el);
+      break;
+    }
+    default: {
+      // do nothing
+    }
   }
 }
 
@@ -89,18 +117,7 @@ function applyInsertTask({ beforeParent, mountingSet, afterParent, beforeIndex, 
   console.assert(refNode === null || refNode._el);
   console.assert(parentNode._el);
 
-  switch (node.type) {
-    case 'ELEMENT':
-      node._el = document.createElement(node.tag);
-      parentNode._el.insertBefore(node._el, refNode && refNode._el);
-      break;
-    case 'TEXT':
-      node._el = document.createTextNode(node.text);
-      parentNode._el.insertBefore(node._el, refNode && refNode._el);
-      break;
-    default:
-      break;
-  }
+  mountNode(node, parentNode._el, refNode && refNode._el);
 }
 
 function applyMoveTask({ beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex }) {
@@ -117,7 +134,7 @@ function applyMoveTask({ beforeParent, mountingSet, afterParent, beforeIndex, af
   console.assert(parentNode._el);
   console.assert(node._el);
 
-  parentNode._el.insertBefore(node._el, refNode && refNode._el);
+  moveNode(node, node._el, parentNode._el, refNode && refNode._el);
 }
 
 function applyRemoveTask({ beforeParent, afterParent, beforeIndex }) {
@@ -126,7 +143,33 @@ function applyRemoveTask({ beforeParent, afterParent, beforeIndex }) {
 
   console.assert(node._el);
 
-  parentNode._el.removeChild(node._el);
+  removeNode(node, node._el, parentNode._el);
+}
+
+function mountNode(vnode, parentNode, refNode = null) {
+  switch (vnode.type) {
+    case 'ELEMENT':
+      vnode._el = document.createElement(vnode.tag);
+      parentNode.insertBefore(vnode._el, refNode);
+      break;
+    case 'TEXT':
+      vnode._el = document.createTextNode(vnode.text);
+      parentNode.insertBefore(vnode._el, refNode);
+      break;
+    default:
+      // support no vnode type other than ELEMENT and TEXT
+      throw '!';
+  }
+}
+
+function moveNode(vnode, selfNode, parentNode, refNode = null) {
+  console.assert(vnode._el === selfNode);
+  parentNode.insertBefore(selfNode, refNode);
+}
+
+function removeNode(vnode, selfNode, parentNode) {
+  console.assert(vnode._el === selfNode);
+  parentNode.removeChild(selfNode);
 }
 
 /* function applyDOMOperationTask(task, state) {

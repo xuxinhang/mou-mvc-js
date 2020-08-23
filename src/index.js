@@ -84,7 +84,7 @@ window.toggleRefresh = () => {
   console.log(words);
   refresh(lastVNode, currentVNode, document.querySelector('#root'));
 
-  const isWordSame = Array.from(document.querySelectorAll('section')).every(
+  const isWordSame = Array.from(document.querySelectorAll('#root section')).every(
     (node, index) => node.innerText === words[index]
   );
 

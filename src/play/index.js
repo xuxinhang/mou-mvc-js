@@ -1,9 +1,9 @@
 // alert('Hello Parcel~');
 
-import h from './lib/h';
-import Component from './lib/base-component';
-import { mount, refresh } from './lib/core';
-import { isVNodeLinkedToDOMNode } from './lib/toolkit';
+import h from '$/lib/h';
+import Component from '$/lib/base-component';
+import { mount, refresh } from '$/lib/core';
+import { isVNodeLinkedToDOMNode } from '$/lib/toolkit';
 
 const get_vnode = () =>
   h('main', null, [

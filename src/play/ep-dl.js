@@ -1,6 +1,6 @@
-import h from './lib/h';
-import { mount, refresh } from './lib/core';
-import { isVNodeLinkedToDOMNode } from './lib/toolkit';
+import h from '$/lib/h';
+import { mount, refresh } from '$/lib/core';
+import { isVNodeLinkedToDOMNode } from '$/lib/toolkit';
 
 const database = [
   {

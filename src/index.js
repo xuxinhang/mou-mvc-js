@@ -20,7 +20,9 @@ class App extends Component {
   }
 }
 
+// eslint-disable-next-line
 const vm = new App();
+
 // mount(h('main', null, [h('section', { id: 'intro' }, null), h('section', { id: 'appr' }, null) ]), document.querySelector('#root'));
 
 const wordLibrary = [

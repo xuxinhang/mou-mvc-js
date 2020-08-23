@@ -1,5 +1,4 @@
 import h from './lib/h';
-import Component from './lib/base-component';
 import { mount, refresh } from './lib/core';
 import { isVNodeLinkedToDOMNode } from './lib/toolkit';
 

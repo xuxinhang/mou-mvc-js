@@ -1,7 +1,7 @@
 import { normalizeVNode } from './h';
 import { apply, createDOMOperationTasker } from './tasker';
 import { vdomInsert, vdomRemove } from './vop';
-import { generateIndexArray, generateUID } from './toolkit';
+import { /* generateIndexArray, */ generateUID } from './toolkit';
 
 export function mount(vnode, elem) {
   vnode = normalizeVNode(vnode);
@@ -32,7 +32,7 @@ function _update(parent, prevnode, vnode) {
   if (prevnode == null && vnode != null) {
     mountOne(tasker, parent, [vnode], parent, -1, 0, null);
   } else if (prevnode != null && vnode == null) {
-    removeOne();
+    // removeOne();
   } else if (prevnode != null && vnode != null) {
     diffOne(tasker, parent, prevnode, vnode);
   }
@@ -143,7 +143,7 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
   }
 }
 
-function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
+function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex) {
   // console.log(beforeIndex);
   console.assert(beforeIndex >= 0);
   const node = beforeParent.children[beforeIndex];
@@ -208,7 +208,7 @@ function diffOneElement(tasker, parent, prevnode, vnode) {
   }
 }
 
-function diffSelf(tasker, prevnode, vnode) {
+function diffSelf(/* tasker, prevnode, vnode */) {
   // TODO
   return;
 }

@@ -1,4 +1,4 @@
-export const Fragment = Symbol('vnode - Fragment');
+export const Fragment = Symbol('Fragment');
 export const Protal = Symbol('Protal');
 
 export default function createElement(tag, data = {}, children = null) {

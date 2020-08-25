@@ -24,6 +24,7 @@ export function vdomInsert(
   if (isFragmentParentNode) {
     // console.log(parentNode);
     redirectedParentNode = parentNode._host;
+    // TODO: a better processing method
     redirectedTailRefNode = getVNodeAsRefNode(parentNode._tailRef);
 
     // console.log(redirectedTailRefNode);

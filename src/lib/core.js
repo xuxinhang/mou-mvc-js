@@ -70,10 +70,8 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       node._el = null;
 
       // the host target node, because the fragment node has no entity
-      node._host = parentNode._host ?? parentNode;
-      // TODO: node._host could also be assigned like the following:
-      //   node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode
-      //   const isNotEntityNode = node => node.type === 'FRAGMENT' || 'PROTAL';
+      //   node._host = parentNode._host ?? parentNode;
+      node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode;
 
       // use _tailRef to mark the tail of a fragment node in the host target node
       // _tailRef represents the sibling node of the fragment node, or null if itself is the last one
@@ -81,12 +79,9 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       node._tailRef =
         afterNextBeforeIndex === null
           ? parentNode._tailRef ?? null // TODO: calculate when used ?
-          : afterNextBeforeIndex < 0
-          ? mountingSet[~afterNextBeforeIndex]
-          : beforeParent.children[afterNextBeforeIndex];
-      // TODO: isNotEntityNode(parentNode) ? parentNode._host : null
+          : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
 
-      console.log('_tailRef:\t', node);
+      // console.log('_tailRef:\t', node);
 
       vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
 
@@ -115,24 +110,17 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
     case 'FRAGMENT': {
       const beforeNode = beforeParent.children[beforeIndex];
       const afterNode = afterParent.children[afterIndex];
-
-      console.assert(beforeNode.type === 'FRAGMENT');
-      console.assert(afterNode.type === 'FRAGMENT');
+      console.assert(beforeNode.type === 'FRAGMENT' && afterNode.type === 'FRAGMENT');
 
       // TODO 添加一些内容
-      // vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
-      // TODO: copy/update the value of _tailRef, _el and _host from the old fragment node
       diffSelf(tasker, beforeNode, afterNode);
+      // TODO: copy/update the value of _tailRef, _el and _host from the old fragment node
+      // just simply copy the #_host. Because the node won't move cross layers
       afterNode._host = beforeNode._host;
       afterNode._tailRef =
         afterNextBeforeIndex === null
           ? beforeParent._tailRef ?? null
           : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
-
-      // for (let i = 0; i < beforeParent.children.length; i++) {
-      //   // insert each child of this fragment to `
-      //   moveOne(tasker, beforeNode, [], afterNode, i, i, null);
-      // }
 
       for (let i = beforeNode.children.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
         // insert each child of this fragment one by one
@@ -214,61 +202,53 @@ function diffSelf(/* tasker, prevnode, vnode */) {
 }
 
 function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
-  const before_marks = new Array(beforeNodes.length);
+  const isBeforeNodeRemained = new Array(beforeNodes.length);
   let lastIndex = 0; // 用来存储寻找过程中遇到的最大索引值
 
-  const childrenMoveRecord = [];
-  const childrenInsertRecord = [];
+  const childInsertRecord = [];
+  const mountingSet = [];
+
+  function setAfterNextBeforeIndexOfTheLastInsertRecord(index) {
+    // do nothing if there is no insert record.
+    if (childInsertRecord.length === 0) return;
+    const lastInsertRecord = childInsertRecord[childInsertRecord.length - 1];
+    // if afterNextBeforeIndex === undefined, the lastInsertRecord is still open.
+    if (lastInsertRecord.afterNextBeforeIndex === undefined) lastInsertRecord.afterNextBeforeIndex = index;
+  }
 
   for (let a_i = 0; a_i < afterNodes.length; a_i++) {
     const a_k = afterNodes[a_i];
     let b_i = beforeNodes.findIndex(e => isNodeDiffable(e, a_k));
     const b_k = beforeNodes[b_i];
     if (b_i === -1) {
-      const beforeIndex = -childrenInsertRecord.push(a_k);
-
-      // assign the afterNextBefore value of the last moved node
-      const lastChildrenMoveRecord = childrenMoveRecord[childrenMoveRecord.length - 1];
-      if (lastChildrenMoveRecord && lastChildrenMoveRecord.afterNextBeforeIndex === undefined) {
-        lastChildrenMoveRecord.afterNextBeforeIndex = beforeIndex;
-      }
-
-      childrenMoveRecord.push({ beforeIndex, afterIndex: a_i, afterNextBeforeIndex: undefined });
+      const beforeIndex = -mountingSet.push(a_k);
+      setAfterNextBeforeIndexOfTheLastInsertRecord(beforeIndex);
+      childInsertRecord.push({ beforeIndex, afterIndex: a_i, afterNextBeforeIndex: undefined });
     } else {
-      // assign the afterNextBefore value of the last moved node
-      const lastChildrenMoveRecord = childrenMoveRecord[childrenMoveRecord.length - 1];
-      if (lastChildrenMoveRecord && lastChildrenMoveRecord.afterNextBeforeIndex === undefined) {
-        lastChildrenMoveRecord.afterNextBeforeIndex = b_i;
-      }
-
+      setAfterNextBeforeIndexOfTheLastInsertRecord(b_i);
       if (b_i < lastIndex) {
-        childrenMoveRecord.push({ beforeIndex: b_i, afterIndex: a_i, afterNextBeforeIndex: undefined });
-        diffOne(tasker, parent, b_k, a_k);
+        childInsertRecord.push({ beforeIndex: b_i, afterIndex: a_i, afterNextBeforeIndex: undefined });
       } else {
         lastIndex = b_i;
-        diffOne(tasker, parent, b_k, a_k);
       }
-      before_marks[b_i] = true;
+      diffOne(tasker, parent, b_k, a_k);
+      isBeforeNodeRemained[b_i] = true;
     }
   }
 
-  const lastChildrenMoveRecord = childrenMoveRecord[childrenMoveRecord.length - 1];
-  if (lastChildrenMoveRecord && lastChildrenMoveRecord.afterNextBeforeIndex === undefined) {
-    lastChildrenMoveRecord.afterNextBeforeIndex = null; // null stands for the last one.
-  }
+  setAfterNextBeforeIndexOfTheLastInsertRecord(null); // null stands for the last one.
 
   for (let b_i = 0; b_i < beforeNodes.length; b_i++) {
-    const b_used = !!before_marks[b_i];
-    if (b_used) continue;
-    unmountOne(tasker, prevParent, childrenInsertRecord, parent, b_i, undefined, undefined);
+    if (isBeforeNodeRemained[b_i]) continue;
+    unmountOne(tasker, prevParent, mountingSet, parent, b_i, undefined, undefined);
   }
 
-  const sortedChildrenMoveRecord = childrenMoveRecord.sort((a, b) => b.afterIndex - a.afterIndex);
-  for (const r of sortedChildrenMoveRecord) {
+  const sortedChildInsertRecord = childInsertRecord.sort((a, b) => b.afterIndex - a.afterIndex);
+  for (const r of sortedChildInsertRecord) {
     if (r.beforeIndex < 0) {
-      mountOne(tasker, prevParent, childrenInsertRecord, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
+      mountOne(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     } else {
-      moveOne(tasker, prevParent, childrenInsertRecord, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
+      moveOne(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     }
   }
 }
@@ -276,14 +256,17 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
 /* Utils */
 
 function isNodeDiffable(a, b) {
-  // TODO
-  return (
-    a.type === b.type &&
-    a.key === b.key && // basic condition
-    (a.type !== 'ELEMENT' || a.tag === b.tag) // for element node
-  );
+  if (a.type !== b.type) return false;
+  if (a.key !== b.key) return false;
+  if (a.type === 'ELEMENT' && a.tag !== b.tag) return false;
+  return true;
 }
 
 function getChildByIndex(index, existingList, mountingList = []) {
   return index < 0 ? mountingList[~index] : existingList[index];
+}
+
+function isNotEntityNode(node) {
+  return node.type === 'FRAGMENT' || node.type === 'PROTAL';
+  // return node._host !== undefined && node._host !== null;
 }

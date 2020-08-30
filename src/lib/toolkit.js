@@ -7,6 +7,14 @@ export function isVNodeLinkedToDOMNode(vnode) {
   );
 }
 
+export function isVNodeLinkedToRelativeVNode(vnode) {
+  return (
+    vnode._parent !== undefined &&
+    vnode._nextSibling !== undefined &&
+    (vnode.children ?? []).every(c => isVNodeLinkedToRelativeVNode(c))
+  );
+}
+
 export function generateUID() {
   return ~~(Math.random() * 10000000);
 }

@@ -50,12 +50,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
     case 'ELEMENT': {
       vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
       // then, mount the children nodes
-      const childrenNodes = vnode.children;
-      console.assert(vnode && childrenNodes);
-      for (let i = 0; i < childrenNodes.length; i++) {
-        // @HACK  afterNextBeforeIndex is assigned as null, which fits this situation
-        mountOne(tasker, vnode, childrenNodes, vnode, ~i, i, null);
-      }
+      mountChildren(tasker, vnode, vnode);
       break;
     }
     case 'TEXT': {
@@ -64,11 +59,11 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
     }
     case 'FRAGMENT': {
       const node = vnode;
-      const parentNode = afterParent;
 
       // the fragment node is linked to no DOM entity
       node._el = null;
 
+      // const parentNode = afterParent;
       // the host target node, because the fragment node has no entity
       //   node._host = parentNode._host ?? parentNode;
       // node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode;
@@ -84,17 +79,33 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       // console.log('_tailRef:\t', node);
 
       vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
-
-      console.assert(vnode && vnode.children);
-      const childrenNodes = vnode.children;
-      for (let i = 0; i < childrenNodes.length; i++) {
-        mountOne(tasker, null, childrenNodes, vnode, ~i, i, null);
-      }
+      mountChildren(tasker, null, vnode);
       break;
     }
     // and other cases for different vnode.type:
     default:
       break;
+  }
+}
+
+function mountChildren(tasker, beforeParent, afterParent) {
+  const childNodes = afterParent.children;
+  console.assert(afterParent && childNodes);
+
+  // update #_nextSibling and #_parent
+  for (let i = 0; i < childNodes.length; i++) {
+    const a_k = childNodes[i];
+    a_k._nextSibling = childNodes[i + 1];
+    a_k._parent = afterParent;
+  }
+  if (childNodes.length > 0) {
+    childNodes[childNodes.length - 1]._nextSibling = null;
+  }
+
+  for (let i = 0; i < childNodes.length; i++) {
+    // @HACK  afterNextBeforeIndex is always assigned as null, which fits this situation
+    //        Maybe changed to use the correct afterNextIndexBefore in the future
+    mountOne(tasker, beforeParent, childNodes, afterParent, ~i, i, null);
   }
 }
 
@@ -138,15 +149,19 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
   const node = beforeParent.children[beforeIndex];
 
   switch (node.type) {
-    case 'ELEMENT':
+    case 'ELEMENT': {
+      // just simply delete this element and all of its children will go
+      vdomRemove(tasker, beforeParent, afterParent, beforeIndex);
+      break;
+    }
     case 'TEXT': {
       vdomRemove(tasker, beforeParent, afterParent, beforeIndex);
       break;
     }
     case 'FRAGMENT': {
-      // remove all of its children
+      // recursively remove all of its children
       for (let i = 0; i < node.children.length; i++) {
-        vdomRemove(tasker, node, null, i);
+        unmountOne(tasker, node, null, null, i);
       }
       break;
     }

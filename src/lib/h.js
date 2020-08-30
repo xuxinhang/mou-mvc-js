@@ -1,14 +1,16 @@
 export const Fragment = Symbol('Fragment');
 export const Protal = Symbol('Protal');
 
-export default function createElement(tag, data = {}, children = null) {
+export default function createElement(tag, data = {}, ...children) {
+  // pre-process input parameters
+  children = children.flat();
+  data = data ?? {};
+
   const base = {
     _isVNode: true,
     _el: null,
     type: null,
   };
-
-  data = data ?? {};
 
   if (tag === Fragment || tag === '__fragment__') {
     Object.assign(base, {

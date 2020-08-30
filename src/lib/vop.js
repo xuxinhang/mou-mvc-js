@@ -38,10 +38,12 @@ export function vdomInsert(
       const node = isInserted ? mountingSet[~beforeIndex] : beforeParent.children[beforeIndex];
       const refNode =
         afterNextBeforeIndex === null
-          ? redirectedTailRefNode // null
-          : afterNextBeforeIndex < 0
-          ? mountingSet[~afterNextBeforeIndex]
-          : beforeParent.children[afterNextBeforeIndex];
+          ? redirectedTailRefNode
+          : getHeadEntityNode(
+              afterNextBeforeIndex < 0
+                ? mountingSet[~afterNextBeforeIndex]
+                : beforeParent.children[afterNextBeforeIndex]
+            );
 
       tasker.enqueue({
         type: isInserted ? 'mountNode' : 'moveNode',

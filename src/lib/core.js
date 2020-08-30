@@ -71,16 +71,16 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
 
       // the host target node, because the fragment node has no entity
       //   node._host = parentNode._host ?? parentNode;
-      node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode;
+      // node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode;
 
       // use _tailRef to mark the tail of a fragment node in the host target node
       // _tailRef represents the sibling node of the fragment node, or null if itself is the last one
       // node._tailRef = if as tail, (parentNode._tailRef ?? null); else, referVNode;
-      node._tailRef =
-        afterNextBeforeIndex === null
-          ? parentNode._tailRef ?? null // TODO: calculate when used ?
-          : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
-
+      // node._tailRef =
+      //   afterNextBeforeIndex === null
+      //     ? parentNode._tailRef ?? null // TODO: calculate when used ?
+      //     : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
+      // node._nextSibling = getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
       // console.log('_tailRef:\t', node);
 
       vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
@@ -116,11 +116,12 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       diffSelf(tasker, beforeNode, afterNode);
       // TODO: copy/update the value of _tailRef, _el and _host from the old fragment node
       // just simply copy the #_host. Because the node won't move cross layers
-      afterNode._host = beforeNode._host;
-      afterNode._tailRef =
-        afterNextBeforeIndex === null
-          ? beforeParent._tailRef ?? null
-          : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
+      // afterNode._host = beforeNode._host;
+      // afterNode._tailRef =
+      //   afterNextBeforeIndex === null
+      //     ? beforeParent._tailRef ?? null
+      //     : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
+      // afterNode._nextSibling = getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
 
       for (let i = beforeNode.children.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
         // insert each child of this fragment one by one
@@ -161,12 +162,11 @@ function diffOne(tasker, parent, prevnode, vnode) {
   // copy the meta data
   vnode._el = prevnode._el;
   vnode._uid = prevnode._uid;
-  if (prevnode._host) vnode._host = prevnode._host;
-  // TODO: 考虑放到 diffChildren 过程中或者在 diffOne 中传入 afterNextBeforeIndex
-  // 不论移动的 fragment 还是不移动的 fragment 都需要重新计算 _tailRef
-  if (prevnode._tailRef !== undefined && vnode._tailRef === undefined) {
-    vnode._tailRef = prevnode._tailRef;
-  }
+  // if (prevnode._host) vnode._host = prevnode._host;
+  // TODO: 考虑放到 diffChildren 过程中 不论 fragment 是否移动都需要重新计算 _tailRef
+  // if (prevnode._tailRef !== undefined && vnode._tailRef === undefined) {
+  //   vnode._tailRef = prevnode._tailRef;
+  // }
 
   diffSelf(tasker, prevnode, vnode);
 
@@ -234,10 +234,19 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
       diffOne(tasker, parent, b_k, a_k);
       isBeforeNodeRemained[b_i] = true;
     }
+
+    // update #_nextSibling
+    if (a_i > 0) afterNodes[a_i - 1]._nextSibling = a_k;
+    // update #_parent
+    a_k._parent = parent;
   }
 
   setAfterNextBeforeIndexOfTheLastInsertRecord(null); // null stands for the last one.
 
+  // update #_nextSibling
+  if (afterNodes.length > 0) afterNodes[afterNodes.length - 1]._nextSibling = null;
+
+  // unmount the un-used nodes
   for (let b_i = 0; b_i < beforeNodes.length; b_i++) {
     if (isBeforeNodeRemained[b_i]) continue;
     unmountOne(tasker, prevParent, mountingSet, parent, b_i, undefined, undefined);
@@ -262,11 +271,16 @@ function isNodeDiffable(a, b) {
   return true;
 }
 
-function getChildByIndex(index, existingList, mountingList = []) {
+export function getChildByIndex(index, existingList, mountingList = []) {
+  if (index === null) return null;
   return index < 0 ? mountingList[~index] : existingList[index];
 }
 
-function isNotEntityNode(node) {
+export function isNotEntityNode(node) {
   return node.type === 'FRAGMENT' || node.type === 'PROTAL';
   // return node._host !== undefined && node._host !== null;
+}
+
+export function isEntityNode(node) {
+  return !isNotEntityNode(node);
 }

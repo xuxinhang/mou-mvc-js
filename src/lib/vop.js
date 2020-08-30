@@ -1,5 +1,7 @@
 /* vdom ops */
 
+import { isEntityNode } from './core';
+
 export function vdomInsert(
   tasker,
   beforeParent,
@@ -23,11 +25,11 @@ export function vdomInsert(
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
   if (isFragmentParentNode) {
     // console.log(parentNode);
-    redirectedParentNode = parentNode._host;
+    // redirectedParentNode = parentNode._host;
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
     // TODO: a better processing method
-    redirectedTailRefNode = getVNodeAsRefNode(parentNode._tailRef);
-
-    // console.log(redirectedTailRefNode);
+    // redirectedTailRefNode = getVNodeAsRefNode(parentNode._tailRef);
+    redirectedTailRefNode = getTailRefEntityNode(parentNode);
   }
 
   switch (movedVNode.type) {
@@ -90,7 +92,8 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
   // set the redirect target for vnodes with a fragment parent
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
   if (isFragmentParentNode) {
-    redirectedParentNode = parentNode._host;
+    // redirectedParentNode = parentNode._host;
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
     // redirectedTailRefNode = parentNode._tailRef;
   }
 
@@ -113,13 +116,48 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
   }
 }
 
-function getVNodeAsRefNode(vnode) {
-  if (vnode === null) return null;
+function getFirstEntityNode(node) {
+  if (node === null) return null;
 
-  if (vnode.type === 'FRAGMENT') {
-    const hasChildren = vnode.children.length;
-    return hasChildren ? getVNodeAsRefNode(vnode.children[0]) : vnode._tailRef;
+  if (node.type === 'FRAGMENT') {
+    const hasChildren = node.children.length;
+    return hasChildren ? getFirstEntityNode(node.children[0]) : node._nextSibling;
+    // return hasChildren ? getVNodeAsRefNode(vnode.children[0]) : vnode._tailRef;
   } else {
-    return vnode;
+    return node;
   }
+}
+
+function getTailRefEntityNode(node) {
+  let current = node;
+
+  // eslint-disable-next-line
+  while (true) {
+    if (current._nextSibling) {
+      const ref = getHeadEntityNode(current._nextSibling);
+      if (ref) return ref;
+      current = current._nextSibling;
+    } else if (current._parent) {
+      if (isEntityNode(current._parent)) return null;
+      current = current._parent;
+    } else {
+      // have reached the toppest node
+      return null;
+    }
+  }
+}
+
+function getHeadEntityNode(root) {
+  if (isEntityNode(root)) return root;
+  for (const child of root.children) {
+    const result = getHeadEntityNode(child);
+    if (result) return result;
+  }
+}
+
+function getNearestAncestorEntityNode(startNode) {
+  for (let current = startNode; current; current = current._parent) {
+    if (isEntityNode(current)) return current;
+  }
+  return null;
 }

@@ -49,7 +49,6 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
   switch (vnode.type) {
     case 'ELEMENT': {
       vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
-      // then, mount the children nodes
       mountChildren(tasker, vnode, vnode);
       break;
     }
@@ -187,7 +186,12 @@ function diffOne(tasker, parent, prevnode, vnode) {
 
   switch (prevnode.type) {
     case 'ELEMENT': {
-      diffOneElement(tasker, parent, prevnode, vnode);
+      if (prevnode.tag !== vnode.tag) {
+        diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
+      } else {
+        diffSelf(tasker, prevnode, vnode);
+        diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
+      }
       break;
     }
     case 'TEXT':
@@ -199,15 +203,6 @@ function diffOne(tasker, parent, prevnode, vnode) {
     }
     default:
       break;
-  }
-}
-
-function diffOneElement(tasker, parent, prevnode, vnode) {
-  if (prevnode.tag !== vnode.tag) {
-    diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
-  } else {
-    diffSelf(tasker, prevnode, vnode);
-    diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
   }
 }
 
@@ -287,7 +282,6 @@ function isNodeDiffable(a, b) {
 }
 
 export function getChildByIndex(index, existingList, mountingList = []) {
-  if (index === null) return null;
   return index < 0 ? mountingList[~index] : existingList[index];
 }
 

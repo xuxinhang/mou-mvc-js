@@ -45,10 +45,10 @@ function getVTree(items) {
         <Mou.Fragment key={t.name}>
           <dt>{t.name}</dt>
           <dd>{t.desc}</dd>
-          <Mou.Fragment key="#">
+          <>
             <meter />
             <mark>$</mark>
-          </Mou.Fragment>
+          </>
         </Mou.Fragment>
       ))}
     </dl>

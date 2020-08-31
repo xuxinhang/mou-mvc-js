@@ -13,9 +13,6 @@ export function vdomInsert(
 ) {
   const isInserted = beforeIndex < 0;
   const movedVNode = isInserted ? mountingSet[~beforeIndex] : beforeParent.children[beforeIndex];
-  const referVNode = isInserted ? mountingSet[~afterNextBeforeIndex] : beforeParent.children[afterNextBeforeIndex];
-
-  const task = { type: isInserted ? 'insert' : 'move' };
 
   const parentNode = afterParent;
   let redirectedParentNode = parentNode;
@@ -24,18 +21,16 @@ export function vdomInsert(
   // set the redirect target for vnodes with a fragment parent
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
   if (isFragmentParentNode) {
-    // console.log(parentNode);
-    // redirectedParentNode = parentNode._host;
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
-    // TODO: a better processing method
-    // redirectedTailRefNode = getVNodeAsRefNode(parentNode._tailRef);
     redirectedTailRefNode = getTailRefEntityNode(parentNode);
+    // redirectedParentNode = parentNode._host;
+    // redirectedTailRefNode = getVNodeAsRefNode(parentNode._tailRef);
   }
 
   switch (movedVNode.type) {
     case 'ELEMENT':
     case 'TEXT': {
-      const node = isInserted ? mountingSet[~beforeIndex] : beforeParent.children[beforeIndex];
+      const selfNode = movedVNode;
       const refNode =
         afterNextBeforeIndex === null
           ? redirectedTailRefNode
@@ -47,9 +42,9 @@ export function vdomInsert(
 
       tasker.enqueue({
         type: isInserted ? 'mountNode' : 'moveNode',
-        selfNode: node,
+        selfNode,
         parentNode: redirectedParentNode,
-        refNode: refNode,
+        refNode,
       });
       break;
     }
@@ -115,18 +110,6 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
     }
     default:
     // return {};
-  }
-}
-
-function getFirstEntityNode(node) {
-  if (node === null) return null;
-
-  if (node.type === 'FRAGMENT') {
-    const hasChildren = node.children.length;
-    return hasChildren ? getFirstEntityNode(node.children[0]) : node._nextSibling;
-    // return hasChildren ? getVNodeAsRefNode(vnode.children[0]) : vnode._tailRef;
-  } else {
-    return node;
   }
 }
 

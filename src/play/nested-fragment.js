@@ -42,7 +42,7 @@ function getVTree(items) {
   const vtree = (
     <dl>
       {items.map(t => (
-        <Mou.Fragment key={t.name}>
+        <Mou.Fragment key={t.name.toLowerCase()}>
           <dt>{t.name}</dt>
           <dd>{t.desc}</dd>
           <>
@@ -78,7 +78,7 @@ setTimeout(() => {
 
 function randomTick() {
   const items = database
-    .map(t => ({ ...t, num: ~~(Math.random() * 100000) }))
+    .map(t => ({ ...t, name: window.capStatus ? t.name.toUpperCase() : t.name, num: ~~(Math.random() * 100000) }))
     .sort((a, b) => a.num - b.num)
     .slice(0, ~~(Math.random() * database.length));
 
@@ -114,4 +114,8 @@ document.querySelector('.batch-tick-btn').addEventListener('dblclick', function 
     randomTick();
     if (count) exec(count - 1);
   })(10000);
+});
+
+document.querySelector('.cap-toggle-checkbox').addEventListener('click', function (e) {
+  window.capStatus = e.target.checked;
 });

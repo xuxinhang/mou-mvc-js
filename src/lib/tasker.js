@@ -53,6 +53,13 @@ function applyDOMOperationTask(task) {
       removeNode(selfNode, selfNode._el, parentNode._el);
       break;
     }
+    case 'updateTextContent': {
+      const { selfNode } = task;
+      const el = selfNode._el;
+      console.assert(el && el.nodeType === el.TEXT_NODE);
+      updateTextContent(selfNode, el);
+      break;
+    }
     default: {
       // do nothing
     }
@@ -82,6 +89,10 @@ function moveNode(vnode, selfNode, parentNode, refNode = null) {
 function removeNode(vnode, selfNode, parentNode) {
   console.assert(vnode._el === selfNode);
   parentNode.removeChild(selfNode);
+}
+
+function updateTextContent(vnode, selfNode) {
+  selfNode.textContent = vnode.text;
 }
 
 /* The initial experiment for diff algorithm

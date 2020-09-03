@@ -122,8 +122,6 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       const afterNode = afterParent.children[afterIndex];
       console.assert(beforeNode.type === 'FRAGMENT' && afterNode.type === 'FRAGMENT');
 
-      // TODO 添加一些内容
-      diffSelf(tasker, beforeNode, afterNode);
       // TODO: copy/update the value of _tailRef, _el and _host from the old fragment node
       // just simply copy the #_host. Because the node won't move cross layers
       // afterNode._host = beforeNode._host;
@@ -206,8 +204,22 @@ function diffOne(tasker, parent, prevnode, vnode) {
   }
 }
 
-function diffSelf(/* tasker, prevnode, vnode */) {
-  // TODO
+function diffSelf(tasker, beforeNode, afterNode) {
+  console.assert(beforeNode.type === afterNode.type);
+  const nodeType = beforeNode.type;
+
+  switch (nodeType) {
+    case 'TEXT': {
+      console.assert(beforeNode._el && beforeNode._el.textContent === beforeNode.text);
+      console.assert(beforeNode._el === afterNode._el);
+      if (beforeNode.text !== afterNode.text) {
+        tasker.enqueue({ type: 'updateTextContent', selfNode: afterNode });
+        // console.log(beforeNode.text, afterNode.text);
+      }
+      break;
+    }
+  }
+
   return;
 }
 

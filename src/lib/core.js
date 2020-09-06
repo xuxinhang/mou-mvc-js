@@ -3,7 +3,13 @@ import { apply, createDOMOperationTasker } from './tasker';
 import { vdomInsert, vdomRemove } from './vop';
 import { /* generateIndexArray, */ generateUID } from './toolkit';
 
+function clearMountTargetElement(el) {
+  el.innerHTML = '';
+}
+
 export function mount(vnode, elem) {
+  clearMountTargetElement(elem);
+
   vnode = normalizeVNode(vnode);
   const hackedParentVNode = {
     _isVNode: true,
@@ -45,6 +51,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
   const vnode = mountingSet[~beforeIndex];
 
   vnode._uid = generateUID();
+  vnode._parent = afterParent;
 
   switch (vnode.type) {
     case 'ELEMENT': {

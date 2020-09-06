@@ -12,7 +12,7 @@ module.exports = {
     node: true,
     browser: true,
   },
-  plugins: [],
+  plugins: ['react'],
   extends: ['eslint:recommended'],
   globals: {},
   rules: {
@@ -20,5 +20,7 @@ module.exports = {
     'no-unused-vars': 1,
     'no-useless-escape': 0,
     'no-empty': 0,
+    'react/jsx-uses-vars': 1,
+    'react/jsx-uses-react': 1,
   },
 };

@@ -18,3 +18,5 @@ Thumbs.db
 
 # Editor generated files
 /.vscode
+
+.karma-parcel

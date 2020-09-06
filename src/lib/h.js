@@ -48,6 +48,8 @@ function normalizeChildren(children) {
 }
 
 export function normalizeVNode(vnode) {
+  if (vnode === undefined || vnode === null) vnode = '';
+
   if (typeof vnode === 'string') {
     return {
       _isVNode: true,

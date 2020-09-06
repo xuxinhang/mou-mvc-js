@@ -59,6 +59,14 @@ function getVTree(items) {
 
 const target = document.querySelector('.zone');
 
+mount(
+  <Mou.Fragment>
+    <span>ABC</span>
+    {null}
+  </Mou.Fragment>,
+  target
+);
+
 let new_vtree = Mou.h('dl', null);
 mount(new_vtree, target);
 let last_vtree = new_vtree;

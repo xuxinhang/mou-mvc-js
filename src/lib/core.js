@@ -51,7 +51,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
   const vnode = mountingSet[~beforeIndex];
 
   vnode._uid = generateUID();
-  vnode._parent = afterParent;
+  vnode._parent = afterParent; // TODO maybe removed one day.
 
   switch (vnode.type) {
     case 'ELEMENT': {
@@ -86,6 +86,20 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
 
       vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
       mountChildren(tasker, null, vnode);
+      break;
+    }
+    case 'COMPONENT': {
+      const node = vnode;
+      const subRoot = node.tag(node.props);
+      node._subRoot = subRoot;
+
+      // fn - mountSubRoot
+      if (subRoot) {
+        subRoot._host = node;
+      }
+
+      // TODO yank another function which accept the only one subRoot parameter.
+      mountOne(tasker, null, [subRoot], node, -1, 0, null);
       break;
     }
     // and other cases for different vnode.type:
@@ -144,6 +158,15 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       }
       break;
     }
+    case 'COMPONENT': {
+      const beforeNode = beforeParent.children[beforeIndex];
+      const afterNode = afterParent.children[afterIndex];
+      console.assert(beforeNode.type === 'COMPONENT' && afterNode.type === 'COMPONENT');
+      moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
+      break;
+    }
+    default:
+      break;
   }
 }
 
@@ -167,6 +190,11 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
       for (let i = 0; i < node.children.length; i++) {
         unmountOne(tasker, node, null, null, i);
       }
+      break;
+    }
+    case 'COMPONENT': {
+      // lifecycle functions
+      unmountOne(tasker, beforeParent, null, null, beforeIndex);
       break;
     }
     default:
@@ -305,7 +333,7 @@ export function getChildByIndex(index, existingList, mountingList = []) {
 }
 
 export function isNotEntityNode(node) {
-  return node.type === 'FRAGMENT' || node.type === 'PROTAL';
+  return node.type === 'FRAGMENT' || node.type === 'PROTAL' || node.type === 'COMPONENT';
   // return node._host !== undefined && node._host !== null;
 }
 

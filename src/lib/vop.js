@@ -19,12 +19,15 @@ export function vdomInsert(
   let redirectedTailRefNode = null;
 
   // set the redirect target for vnodes with a fragment parent
+  // it's the key about how the fragment works!
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
+  const isComponentParentNode = parentNode.type === 'COMPONENT';
   if (isFragmentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
     redirectedTailRefNode = getTailRefEntityNode(parentNode);
-    // redirectedParentNode = parentNode._host;
-    // redirectedTailRefNode = getVNodeAsRefNode(parentNode._tailRef);
+  } else if (isComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+    redirectedTailRefNode = getTailRefEntityNode(parentNode);
   }
 
   switch (movedVNode.type) {
@@ -105,9 +108,6 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
       });
       break;
     }
-    case 'FRAGMENT': {
-      break;
-    }
     default:
     // return {};
   }
@@ -118,7 +118,10 @@ function getTailRefEntityNode(node) {
 
   // eslint-disable-next-line
   while (true) {
-    if (current._nextSibling) {
+    if (current._host) {
+      // TODO current.type ===
+      current = current._host; // TODO no more #_host
+    } else if (current._nextSibling) {
       const ref = getHeadEntityNode(current._nextSibling);
       if (ref) return ref;
       current = current._nextSibling;
@@ -134,15 +137,27 @@ function getTailRefEntityNode(node) {
 
 function getHeadEntityNode(root) {
   if (isEntityNode(root)) return root;
-  for (const child of root.children) {
-    const result = getHeadEntityNode(child);
-    if (result) return result;
+
+  if (root.type === 'COMPONENT') {
+    return getHeadEntityNode(root._subRoot);
+  } else {
+    // TODO root.type === 'FRAGMENT'
+    for (const child of root.children) {
+      const result = getHeadEntityNode(child);
+      if (result) return result;
+    }
   }
 }
 
 function getNearestAncestorEntityNode(startNode) {
-  for (let current = startNode; current; current = current._parent) {
+  for (let current = startNode; current; ) {
     if (isEntityNode(current)) return current;
+
+    if (current._host) {
+      current = current._host;
+    } else {
+      current = current._parent;
+    }
   }
   return null;
 }

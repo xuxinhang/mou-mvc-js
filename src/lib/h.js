@@ -10,26 +10,33 @@ export default function createElement(tag, data = {}, ...children) {
     _isVNode: true,
     _el: null,
     type: null,
+    key: data?.key,
   };
 
   if (tag === Fragment || tag === '__fragment__') {
     Object.assign(base, {
       type: 'FRAGMENT',
       tag: Fragment,
-      key: data?.key,
       children: normalizeChildren(children),
     });
   } else if (typeof tag === 'string') {
     Object.assign(base, {
       type: 'ELEMENT',
       tag,
-      key: data?.key,
       class: data.class ?? undefined,
       style: data.style ?? undefined,
       attrs: {},
       domProps: {},
       on: {},
       children: normalizeChildren(children),
+    });
+  } else if (typeof tag === 'function') {
+    const { ...props } = data;
+    Object.assign(base, {
+      type: 'COMPONENT',
+      tag,
+      props,
+      children: {},
     });
   } else {
     Object.assign(base, {

@@ -12,7 +12,11 @@ export function vdomInsert(
   afterNextBeforeIndex
 ) {
   const isInserted = beforeIndex < 0;
-  const movedVNode = isInserted ? mountingSet[~beforeIndex] : beforeParent.children[beforeIndex];
+  const movedVNode = isInserted
+    ? mountingSet[~beforeIndex]
+    : beforeParent.type === 'COMPONENT'
+    ? beforeParent._subRoot
+    : beforeParent.children[beforeIndex];
 
   const parentNode = afterParent;
   let redirectedParentNode = parentNode;
@@ -40,8 +44,15 @@ export function vdomInsert(
           : getHeadEntityNode(
               afterNextBeforeIndex < 0
                 ? mountingSet[~afterNextBeforeIndex]
+                : beforeParent.type === 'COMPONENT'
+                ? beforeParent._subRoot
                 : beforeParent.children[afterNextBeforeIndex]
             );
+
+      // console.log('refNode = ', refNode);
+      // if (refNode !== null && refNode._el.parentNode === null) {
+      //   console.log('refNode is not in the DOM!');
+      // }
 
       tasker.enqueue({
         type: isInserted ? 'mountNode' : 'moveNode',
@@ -83,7 +94,7 @@ export function vdomInsert(
 }
 
 export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
-  const node = beforeParent.children[beforeIndex];
+  const node = beforeParent.type === 'COMPONENT' ? beforeParent._subRoot : beforeParent.children[beforeIndex];
   const parentNode = beforeParent;
 
   let redirectedParentNode = parentNode;
@@ -91,10 +102,11 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
 
   // set the redirect target for vnodes with a fragment parent
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
+  const isComponentParentNode = parentNode.type === 'COMPONENT';
   if (isFragmentParentNode) {
-    // redirectedParentNode = parentNode._host;
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
-    // redirectedTailRefNode = parentNode._tailRef;
+  } else if (isComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
   }
 
   switch (node.type) {
@@ -109,7 +121,7 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
       break;
     }
     default:
-    // return {};
+      break;
   }
 }
 

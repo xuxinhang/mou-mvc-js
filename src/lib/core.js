@@ -1,7 +1,7 @@
 import { normalizeVNode } from './h';
 import { apply, createDOMOperationTasker } from './tasker';
 import { vdomInsert, vdomRemove } from './vop';
-import { /* generateIndexArray, */ generateUID } from './toolkit';
+import { /* generateIndexArray, */ generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
 
 function clearMountTargetElement(el) {
   el.innerHTML = '';
@@ -130,7 +130,9 @@ function mountChildren(tasker, beforeParent, afterParent) {
 }
 
 function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
-  const node = beforeParent.children[beforeIndex];
+  console.assert(beforeIndex >= 0);
+  const node = beforeParent.type === 'COMPONENT' ? beforeParent._subRoot : beforeParent.children[beforeIndex];
+  // const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
 
   switch (node.type) {
     case 'ELEMENT':
@@ -139,8 +141,10 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       break;
     }
     case 'FRAGMENT': {
-      const beforeNode = beforeParent.children[beforeIndex];
-      const afterNode = afterParent.children[afterIndex];
+      // const beforeNode = beforeParent.children[beforeIndex];
+      // const afterNode = afterParent.children[afterIndex];
+      const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
+      const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
       console.assert(beforeNode.type === 'FRAGMENT' && afterNode.type === 'FRAGMENT');
 
       // TODO: copy/update the value of _tailRef, _el and _host from the old fragment node
@@ -161,6 +165,8 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
     case 'COMPONENT': {
       const beforeNode = beforeParent.children[beforeIndex];
       const afterNode = afterParent.children[afterIndex];
+      // const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
+      // const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
       console.assert(beforeNode.type === 'COMPONENT' && afterNode.type === 'COMPONENT');
       moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
@@ -171,9 +177,9 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
 }
 
 function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex) {
-  // console.log(beforeIndex);
   console.assert(beforeIndex >= 0);
-  const node = beforeParent.children[beforeIndex];
+  // const node = beforeParent.type === 'COMPONENT' ? beforeParent._subRoot : beforeParent.children[beforeIndex];
+  const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
 
   switch (node.type) {
     case 'ELEMENT': {
@@ -194,7 +200,7 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
     }
     case 'COMPONENT': {
       // lifecycle functions
-      unmountOne(tasker, beforeParent, null, null, beforeIndex);
+      unmountOne(tasker, node, null, null, 0);
       break;
     }
     default:
@@ -228,10 +234,13 @@ function diffOne(tasker, parent, prevnode, vnode) {
       break;
     }
     case 'TEXT':
-      // TODO diffOneText();
       break;
     case 'FRAGMENT': {
       diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
+      break;
+    }
+    case 'COMPONENT': {
+      // just diffSelf is enough, the component node has no child.
       break;
     }
     default:
@@ -251,6 +260,14 @@ function diffSelf(tasker, beforeNode, afterNode) {
         tasker.enqueue({ type: 'updateTextContent', selfNode: afterNode });
         // console.log(beforeNode.text, afterNode.text);
       }
+      break;
+    }
+    case 'COMPONENT': {
+      // TODO generate new sub tree and then diff it.
+      console.assert(beforeNode._subRoot !== undefined);
+      // @HACK We assume no change in the sub root.
+      afterNode._subRoot = beforeNode._subRoot;
+      if (afterNode._subRoot) afterNode._subRoot._host = afterNode;
       break;
     }
   }
@@ -326,10 +343,6 @@ function isNodeDiffable(a, b) {
   if (a.key !== b.key) return false;
   if (a.type === 'ELEMENT' && a.tag !== b.tag) return false;
   return true;
-}
-
-export function getChildByIndex(index, existingList, mountingList = []) {
-  return index < 0 ? mountingList[~index] : existingList[index];
 }
 
 export function isNotEntityNode(node) {

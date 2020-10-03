@@ -24,3 +24,24 @@ export function generateIndexArray(n) {
   for (let i = 0; i < n; i++) arr[i] = i;
   return arr;
 }
+
+export function getChildOrSubRootOrMountingNode(index, node, mountingSet) {
+  switch (node.type) {
+    case 'COMPONENT': {
+      return node._subRoot;
+    }
+    case 'ELEMENT':
+    case 'FRAGMENT': {
+      if (index < 0) {
+        if (!Array.isArray(mountingSet)) throw new TypeError('missing mountingSet');
+        return mountingSet[~index];
+      } else {
+        return node.children[index];
+      }
+      // break;
+    }
+    default: {
+      throw new Error('this node has neither child nor sub-root.');
+    }
+  }
+}

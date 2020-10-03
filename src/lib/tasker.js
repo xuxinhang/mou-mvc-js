@@ -3,7 +3,7 @@
  */
 
 export function apply(tasker) {
-  console.log(tasker.queue);
+  console.debug('Tasker Queue: ', tasker.queue);
 
   const state = {};
 

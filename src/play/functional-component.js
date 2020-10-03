@@ -16,10 +16,10 @@ const target = document.querySelector('#zone');
 
 function Product(props) {
   return (
-    // <Mou.Fragment>
-    <dt>{props.name}</dt>
-    // {/* <dd>{props.desc}</dd> */}
-    // </Mou.Fragment>
+    <Mou.Fragment>
+      <dt>{props.name}</dt>
+      <dd>{props.desc}</dd>
+    </Mou.Fragment>
   );
 }
 
@@ -31,6 +31,19 @@ function getTree(dataset) {
       ))}
     </dl>
   );
+}
+
+function checkRenderResult(ref) {
+  const checked = Array.from(target.getElementsByTagName('dt')).map(e => e.innerText);
+  const isSame = checked.every((value, index) => {
+    return value === ref[index];
+  });
+  if (isSame) {
+    console.info('Render well.', ref);
+  } else {
+    console.error('Render Wrong: ', ref);
+  }
+  return isSame;
 }
 
 (function () {
@@ -51,12 +64,22 @@ function getTree(dataset) {
     lastTree = tree;
   }, 2000);
 
+  // setTimeout(() => {
+  //   const tree = getTree(dataset.slice(0, 2).reverse());
+  //   refresh(lastTree, tree, target);
+  //   lastTree = tree;
+  // }, 2000);
+
   const tickBtn = document.querySelector('.tick-btn');
 
   tickBtn.addEventListener('click', () => {
-    const list = dataset.concat([]).sort(() => Math.random() - 0.5);
+    const list = dataset
+      .concat([])
+      .sort(() => Math.random() - 0.5)
+      .slice(0, parseInt(Math.random() * dataset.length));
     const tree = getTree(list);
     refresh(lastTree, tree, target);
     lastTree = tree;
+    checkRenderResult(list.map(item => item.name));
   });
 })();

@@ -13,8 +13,10 @@ export function mount(vnode, elem) {
   vnode = normalizeVNode(vnode);
   const hackedParentVNode = {
     _isVNode: true,
+    _mountingRoot: true,
     _el: elem,
     _uid: -1,
+    type: 'ELEMENT',
     children: [],
   };
   return _update(hackedParentVNode, null, vnode);
@@ -24,8 +26,10 @@ export function refresh(prevnode, vnode, elem) {
   vnode = normalizeVNode(vnode);
   const hackedParentVNode = {
     _isVNode: true,
+    _mountingRoot: true,
     _el: elem,
     _uid: -1,
+    type: 'ELEMENT',
     children: [],
   };
   return _update(hackedParentVNode, prevnode, vnode);
@@ -131,8 +135,7 @@ function mountChildren(tasker, beforeParent, afterParent) {
 
 function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   console.assert(beforeIndex >= 0);
-  const node = beforeParent.type === 'COMPONENT' ? beforeParent._subRoot : beforeParent.children[beforeIndex];
-  // const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
+  const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
 
   switch (node.type) {
     case 'ELEMENT':
@@ -141,8 +144,6 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       break;
     }
     case 'FRAGMENT': {
-      // const beforeNode = beforeParent.children[beforeIndex];
-      // const afterNode = afterParent.children[afterIndex];
       const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
       const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
       console.assert(beforeNode.type === 'FRAGMENT' && afterNode.type === 'FRAGMENT');
@@ -163,10 +164,8 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       break;
     }
     case 'COMPONENT': {
-      const beforeNode = beforeParent.children[beforeIndex];
-      const afterNode = afterParent.children[afterIndex];
-      // const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
-      // const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
+      const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
+      const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
       console.assert(beforeNode.type === 'COMPONENT' && afterNode.type === 'COMPONENT');
       moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
@@ -178,7 +177,6 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
 
 function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex) {
   console.assert(beforeIndex >= 0);
-  // const node = beforeParent.type === 'COMPONENT' ? beforeParent._subRoot : beforeParent.children[beforeIndex];
   const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
 
   switch (node.type) {

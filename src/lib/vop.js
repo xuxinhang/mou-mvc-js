@@ -1,6 +1,7 @@
 /* vdom ops */
 
 import { isEntityNode } from './core';
+import { getChildOrSubRootOrMountingNode } from './toolkit';
 
 export function vdomInsert(
   tasker,
@@ -12,11 +13,12 @@ export function vdomInsert(
   afterNextBeforeIndex
 ) {
   const isInserted = beforeIndex < 0;
+
+  // NOTE: beforeParent might be null here!
+  //       DO NOT directly use getChildOrSubRootOrMountingNode function
   const movedVNode = isInserted
     ? mountingSet[~beforeIndex]
-    : beforeParent.type === 'COMPONENT'
-    ? beforeParent._subRoot
-    : beforeParent.children[beforeIndex];
+    : getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
 
   const parentNode = afterParent;
   let redirectedParentNode = parentNode;
@@ -41,18 +43,7 @@ export function vdomInsert(
       const refNode =
         afterNextBeforeIndex === null
           ? redirectedTailRefNode
-          : getHeadEntityNode(
-              afterNextBeforeIndex < 0
-                ? mountingSet[~afterNextBeforeIndex]
-                : beforeParent.type === 'COMPONENT'
-                ? beforeParent._subRoot
-                : beforeParent.children[afterNextBeforeIndex]
-            );
-
-      // console.log('refNode = ', refNode);
-      // if (refNode !== null && refNode._el.parentNode === null) {
-      //   console.log('refNode is not in the DOM!');
-      // }
+          : getHeadEntityNode(getChildOrSubRootOrMountingNode(afterNextBeforeIndex, beforeParent, mountingSet));
 
       tasker.enqueue({
         type: isInserted ? 'mountNode' : 'moveNode',
@@ -90,11 +81,10 @@ export function vdomInsert(
     default:
       break;
   }
-  // return task;
 }
 
 export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
-  const node = beforeParent.type === 'COMPONENT' ? beforeParent._subRoot : beforeParent.children[beforeIndex];
+  const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
   const parentNode = beforeParent;
 
   let redirectedParentNode = parentNode;

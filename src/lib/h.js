@@ -57,14 +57,14 @@ function normalizeChildren(children) {
 export function normalizeVNode(vnode) {
   if (vnode === undefined || vnode === null) vnode = '';
 
-  if (typeof vnode === 'string') {
+  if (vnode._isVNode) {
+    return vnode;
+  } else {
     return {
       _isVNode: true,
       _el: null,
       type: 'TEXT',
-      text: vnode,
+      text: String(vnode), // TODO a better stringify function in the future
     };
-  } else {
-    return vnode;
   }
 }

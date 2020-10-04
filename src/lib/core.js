@@ -3,48 +3,44 @@ import { apply, createDOMOperationTasker } from './tasker';
 import { vdomInsert, vdomRemove } from './vop';
 import { /* generateIndexArray, */ generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
 
-function clearMountTargetElement(el) {
-  el.innerHTML = '';
+function constructHelperMountingRootNode(el, vnode) {
+  const hackedParentVNode = {
+    _isVNode: true,
+    _isMountingRoot: true, // TODO a better type mark?
+    _el: el,
+    _uid: -1,
+    type: 'ELEMENT', // TODO consider another type "ROOT"?
+    children: [vnode],
+  };
+
+  return hackedParentVNode;
 }
 
 export function mount(vnode, elem) {
-  clearMountTargetElement(elem);
-
-  vnode = normalizeVNode(vnode);
-  const hackedParentVNode = {
-    _isVNode: true,
-    _mountingRoot: true,
-    _el: elem,
-    _uid: -1,
-    type: 'ELEMENT',
-    children: [],
-  };
-  return _update(hackedParentVNode, null, vnode);
+  // clear the original element contains
+  elem.innerHTML = '';
+  return refresh(null, vnode, elem);
 }
 
 export function refresh(prevnode, vnode, elem) {
   vnode = normalizeVNode(vnode);
-  const hackedParentVNode = {
-    _isVNode: true,
-    _mountingRoot: true,
-    _el: elem,
-    _uid: -1,
-    type: 'ELEMENT',
-    children: [],
-  };
-  return _update(hackedParentVNode, prevnode, vnode);
+  const beforeHelperRootNode = constructHelperMountingRootNode(elem, prevnode);
+  const afterHelperRootNode = constructHelperMountingRootNode(elem, vnode);
+  return _update(beforeHelperRootNode, afterHelperRootNode, prevnode, vnode);
 }
 
-function _update(parent, prevnode, vnode) {
+function _update(beforeParent, afterParent, prevnode, vnode) {
   if (prevnode == null && vnode == null) return;
 
   const tasker = createDOMOperationTasker();
+
   if (prevnode == null && vnode != null) {
-    mountOne(tasker, parent, [vnode], parent, -1, 0, null);
+    mountChildren(tasker, beforeParent, afterParent);
+    // mountOne(tasker, parent, [vnode], parent, -1, 0, null);
   } else if (prevnode != null && vnode == null) {
     // removeOne();
   } else if (prevnode != null && vnode != null) {
-    diffOne(tasker, parent, prevnode, vnode);
+    diffChildren(tasker, beforeParent, afterParent, [prevnode], [vnode]);
   }
 
   apply(tasker);
@@ -274,7 +270,7 @@ function diffSelf(tasker, beforeNode, afterNode) {
 }
 
 function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
-  const isBeforeNodeRemained = new Array(beforeNodes.length);
+  const isBeforeNodeReused = new Array(beforeNodes.length);
   let lastIndex = 0; // 用来存储寻找过程中遇到的最大索引值
 
   const childInsertRecord = [];
@@ -290,7 +286,12 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
 
   for (let a_i = 0; a_i < afterNodes.length; a_i++) {
     const a_k = afterNodes[a_i];
-    let b_i = beforeNodes.findIndex(e => isNodeDiffable(e, a_k));
+
+    // update #_nextSibling and #_parent
+    if (a_i > 0) afterNodes[a_i - 1]._nextSibling = a_k;
+    a_k._parent = parent;
+
+    let b_i = beforeNodes.findIndex((n, i) => !isBeforeNodeReused[i] && isNodeDiffable(n, a_k));
     const b_k = beforeNodes[b_i];
     if (b_i === -1) {
       const beforeIndex = -mountingSet.push(a_k);
@@ -304,13 +305,8 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
         lastIndex = b_i;
       }
       diffOne(tasker, parent, b_k, a_k);
-      isBeforeNodeRemained[b_i] = true;
+      isBeforeNodeReused[b_i] = true;
     }
-
-    // update #_nextSibling
-    if (a_i > 0) afterNodes[a_i - 1]._nextSibling = a_k;
-    // update #_parent
-    a_k._parent = parent;
   }
 
   setAfterNextBeforeIndexOfTheLastInsertRecord(null); // null stands for the last one.
@@ -320,7 +316,7 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
 
   // unmount the un-used nodes
   for (let b_i = 0; b_i < beforeNodes.length; b_i++) {
-    if (isBeforeNodeRemained[b_i]) continue;
+    if (isBeforeNodeReused[b_i]) continue;
     unmountOne(tasker, prevParent, mountingSet, parent, b_i, undefined, undefined);
   }
 

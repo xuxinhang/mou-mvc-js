@@ -25,11 +25,16 @@ function Product(props) {
 
 function getTree(dataset) {
   return (
-    <dl>
-      {dataset.map(({ name, desc }) => (
-        <Product key={name} name={name} desc={desc} />
-      ))}
-    </dl>
+    <>
+      <details>
+        <summary>{dataset.length} Products total</summary>Designed by Apple in California.
+      </details>
+      <dl>
+        {dataset.map(({ name, desc }) => (
+          <Product key={name} name={name} desc={desc} />
+        ))}
+      </dl>
+    </>
   );
 }
 
@@ -48,7 +53,7 @@ function checkRenderResult(ref) {
 
 (function () {
   let lastTree = null;
-  const newTree = Mou.h('dl');
+  const newTree = Mou.h('__fragment__', null, Mou.h('dl'));
   mount(newTree, target);
   lastTree = newTree;
 
@@ -56,12 +61,14 @@ function checkRenderResult(ref) {
     const tree = getTree(dataset.slice(0, 2));
     refresh(lastTree, tree, target);
     lastTree = tree;
+    console.log(tree);
   }, 1000);
 
   setTimeout(() => {
     const tree = getTree(dataset.slice(0, 2).reverse());
     refresh(lastTree, tree, target);
     lastTree = tree;
+    console.log(tree);
   }, 2000);
 
   // setTimeout(() => {

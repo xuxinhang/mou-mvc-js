@@ -22,8 +22,8 @@ function Product(props) {
   return (
     <Mou.Fragment>
       <dt>{props.name}</dt>
-      <dd>{props.desc}</dd>
       <Badge number={props.badge} />
+      <dd>{props.desc}</dd>
     </Mou.Fragment>
   );
 }
@@ -78,19 +78,13 @@ function checkRenderResult(ref) {
     lastDataset = currentDataset;
   }, 1000);
 
-  // setTimeout(() => {
-  //   const currentDataset = patchDataset(dataset.slice(0, 2).reverse(), lastDataset);
-  //   const tree = getTree(currentDataset);
-  //   refresh(lastTree, tree, target);
-  //   lastTree = tree;
-  //   lastDataset = currentDataset;
-  // }, 2000);
-
-  // setTimeout(() => {
-  //   const tree = getTree(dataset.slice(0, 2).reverse());
-  //   refresh(lastTree, tree, target);
-  //   lastTree = tree;
-  // }, 2000);
+  setTimeout(() => {
+    const currentDataset = patchDataset(dataset.slice(0, 2).reverse(), lastDataset);
+    const tree = getTree(currentDataset);
+    refresh(lastTree, tree, target);
+    lastTree = tree;
+    lastDataset = currentDataset;
+  }, 2000);
 
   const tickBtn = document.querySelector('.tick-btn');
 

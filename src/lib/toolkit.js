@@ -26,6 +26,12 @@ export function generateIndexArray(n) {
 }
 
 export function getChildOrSubRootOrMountingNode(index, node, mountingSet) {
+  // @HACK fetch from mountingSet firstly, because the offered node might be null
+  if (index < 0) {
+    if (!Array.isArray(mountingSet)) throw new TypeError('missing mountingSet');
+    return mountingSet[~index];
+  }
+
   switch (node.type) {
     case 'COMPONENT': {
       return node._subRoot;

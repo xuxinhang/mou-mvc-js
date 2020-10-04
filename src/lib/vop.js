@@ -16,6 +16,7 @@ export function vdomInsert(
 
   // NOTE: beforeParent might be null here!
   //       DO NOT directly use getChildOrSubRootOrMountingNode function
+  //       <<IMPORTANT!>>
   const movedVNode = isInserted
     ? mountingSet[~beforeIndex]
     : getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);

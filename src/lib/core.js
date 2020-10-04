@@ -39,7 +39,7 @@ function _update(beforeParent, afterParent, prevnode, vnode) {
     mountChildren(tasker, beforeParent, afterParent);
     // mountOne(tasker, parent, [vnode], parent, -1, 0, null);
   } else if (prevnode != null && vnode == null) {
-    // removeOne();
+    // TODO removeOne();
   } else if (prevnode != null && vnode != null) {
     diffChildren(tasker, beforeParent, afterParent, [prevnode], [vnode]);
   }
@@ -123,10 +123,8 @@ function mountChildren(tasker, beforeParent, afterParent) {
     childNodes[childNodes.length - 1]._nextSibling = null;
   }
 
-  for (let i = 0; i < childNodes.length; i++) {
-    // @HACK  afterNextBeforeIndex is always assigned as null, which fits this situation
-    //        Maybe changed to use the correct afterNextIndexBefore in the future
-    mountOne(tasker, beforeParent, childNodes, afterParent, ~i, i, null);
+  for (let i = childNodes.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
+    mountOne(tasker, beforeParent, childNodes, afterParent, ~i, i, lastIndex === null ? lastIndex : ~lastIndex);
   }
 }
 
@@ -260,15 +258,13 @@ function diffSelf(tasker, beforeNode, afterNode) {
     case 'COMPONENT': {
       console.assert(beforeNode._subRoot !== undefined);
       console.assert(beforeNode.tag === afterNode.tag);
-      // @HACK We assume no change in the sub root.
-      // afterNode._subRoot = beforeNode._subRoot;
-      // if (afterNode._subRoot) afterNode._subRoot._host = afterNode;
 
       // re-generate the new sub root node
       const subRoot = afterNode.tag(afterNode.props);
       (afterNode._subRoot = subRoot) && (afterNode._subRoot._host = afterNode);
 
       const prevSubRoot = beforeNode._subRoot;
+      // TODO yank the following into a new function.
       if (isNodeDiffable(prevSubRoot, subRoot)) {
         diffOne(tasker, afterNode, prevSubRoot, subRoot);
       } else {

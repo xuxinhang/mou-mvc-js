@@ -34,6 +34,7 @@ function _update(beforeParent, afterParent, prevnode, vnode) {
 
   const tasker = createDOMOperationTasker();
 
+  // TODO maybe yank the following code into a seperated function
   if (prevnode == null && vnode != null) {
     mountChildren(tasker, beforeParent, afterParent);
     // mountOne(tasker, parent, [vnode], parent, -1, 0, null);
@@ -257,11 +258,24 @@ function diffSelf(tasker, beforeNode, afterNode) {
       break;
     }
     case 'COMPONENT': {
-      // TODO generate new sub tree and then diff it.
       console.assert(beforeNode._subRoot !== undefined);
+      console.assert(beforeNode.tag === afterNode.tag);
       // @HACK We assume no change in the sub root.
-      afterNode._subRoot = beforeNode._subRoot;
-      if (afterNode._subRoot) afterNode._subRoot._host = afterNode;
+      // afterNode._subRoot = beforeNode._subRoot;
+      // if (afterNode._subRoot) afterNode._subRoot._host = afterNode;
+
+      // re-generate the new sub root node
+      const subRoot = afterNode.tag(afterNode.props);
+      (afterNode._subRoot = subRoot) && (afterNode._subRoot._host = afterNode);
+
+      const prevSubRoot = beforeNode._subRoot;
+      if (isNodeDiffable(prevSubRoot, subRoot)) {
+        diffOne(tasker, afterNode, prevSubRoot, subRoot);
+      } else {
+        unmountOne(tasker, beforeNode, [], afterNode, 0, 0);
+        mountOne(tasker, beforeNode, [subRoot], afterNode, -1, 0, null);
+      }
+
       break;
     }
   }
@@ -336,6 +350,7 @@ function isNodeDiffable(a, b) {
   if (a.type !== b.type) return false;
   if (a.key !== b.key) return false;
   if (a.type === 'ELEMENT' && a.tag !== b.tag) return false;
+  if (a.type === 'COMPONENT' && a.tag !== b.tag) return false;
   return true;
 }
 

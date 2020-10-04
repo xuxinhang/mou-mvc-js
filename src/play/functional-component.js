@@ -14,11 +14,16 @@ const dataset = [
 
 const target = document.querySelector('#zone');
 
+function Badge({ number }) {
+  return <mark>{number}</mark>;
+}
+
 function Product(props) {
   return (
     <Mou.Fragment>
       <dt>{props.name}</dt>
       <dd>{props.desc}</dd>
+      <Badge number={props.badge} />
     </Mou.Fragment>
   );
 }
@@ -30,12 +35,19 @@ function getTree(dataset) {
         <summary>{dataset.length} Products total</summary>Designed by Apple in California.
       </details>
       <dl>
-        {dataset.map(({ name, desc }) => (
-          <Product key={name} name={name} desc={desc} />
+        {dataset.map(({ name, desc, count }) => (
+          <Product key={name} name={name} desc={desc} badge={count} />
         ))}
       </dl>
     </>
   );
+}
+
+function patchDataset(dataset, lastDataset = []) {
+  return dataset.map(item => ({
+    ...item,
+    count: (lastDataset.find(i => i.name === item.name)?.count ?? 0) + 1,
+  }));
 }
 
 function checkRenderResult(ref) {
@@ -53,23 +65,26 @@ function checkRenderResult(ref) {
 
 (function () {
   let lastTree = null;
+  let lastDataset = [];
   const newTree = Mou.h('__fragment__', null, Mou.h('dl'));
   mount(newTree, target);
   lastTree = newTree;
 
   setTimeout(() => {
-    const tree = getTree(dataset.slice(0, 2));
+    const currentDataset = patchDataset(dataset.slice(0, 1), lastDataset);
+    const tree = getTree(currentDataset);
     refresh(lastTree, tree, target);
     lastTree = tree;
-    console.log(tree);
+    lastDataset = currentDataset;
   }, 1000);
 
-  setTimeout(() => {
-    const tree = getTree(dataset.slice(0, 2).reverse());
-    refresh(lastTree, tree, target);
-    lastTree = tree;
-    console.log(tree);
-  }, 2000);
+  // setTimeout(() => {
+  //   const currentDataset = patchDataset(dataset.slice(0, 2).reverse(), lastDataset);
+  //   const tree = getTree(currentDataset);
+  //   refresh(lastTree, tree, target);
+  //   lastTree = tree;
+  //   lastDataset = currentDataset;
+  // }, 2000);
 
   // setTimeout(() => {
   //   const tree = getTree(dataset.slice(0, 2).reverse());
@@ -80,13 +95,18 @@ function checkRenderResult(ref) {
   const tickBtn = document.querySelector('.tick-btn');
 
   tickBtn.addEventListener('click', () => {
-    const list = dataset
-      .concat([])
-      .sort(() => Math.random() - 0.5)
-      .slice(0, parseInt(Math.random() * dataset.length));
+    const list = patchDataset(
+      dataset
+        .concat([])
+        .sort(() => Math.random() - 0.5)
+        .slice(0, parseInt(Math.random() * dataset.length)),
+      lastDataset
+    );
     const tree = getTree(list);
     refresh(lastTree, tree, target);
     lastTree = tree;
+    lastDataset = list;
+
     checkRenderResult(list.map(item => item.name));
   });
 })();

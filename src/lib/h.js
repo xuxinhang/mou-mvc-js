@@ -64,7 +64,8 @@ export function normalizeVNode(vnode) {
       _isVNode: true,
       _el: null,
       type: 'TEXT',
-      text: String(vnode), // TODO a better stringify function in the future
+      // TODO a better stringify function in the future
+      text: String(vnode),
     };
   }
 }

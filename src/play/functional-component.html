@@ -4,7 +4,47 @@
     <title>Functional Component</title>
     <meta charset="utf-8" />
     <style>
-      /* */
+      @font-face {
+        font-family: 'SFUIText';
+        src: local('☺︎'), url('https://www.icloud.com/fonts/SFUIText-Regular.woff') format('woff2');
+        font-style: normal;
+        font-weight: 600;
+      }
+
+      @font-face {
+        font-family: 'Dosis';
+        src: local('Dosis Medium'), url('https://cn.vuejs.org/fonts/Dosis/Dosis-Medium.ttf');
+        font-weight: 500;
+      }
+
+      dl {
+        width: 18em;
+      }
+
+      dt {
+        font-size: 1.1em;
+        /* font-family: 'Dosis'; */
+        font-family: 'SFUIText';
+        /* font-weight: bolder; */
+        font-size: 1.3em;
+        color: #1d1d1f;
+      }
+      dd {
+        margin-bottom: 1em;
+        margin-left: 0.1em;
+        font-weight: normal;
+        font-size: 1em;
+        color: #1d1d1f;
+      }
+      dl mark {
+        float: right;
+        border: solid 0.1em currentColor;
+        border-radius: 0.3em;
+        padding: 0.1em 0.4em;
+        font-size: 0.8em;
+        color: #bf4800;
+        background: none;
+      }
     </style>
   </head>
   <body>

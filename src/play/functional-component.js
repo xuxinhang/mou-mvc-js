@@ -21,8 +21,8 @@ function Badge({ number }) {
 function Product(props) {
   return (
     <Mou.Fragment>
-      <dt>{props.name}</dt>
       <Badge number={props.badge} />
+      <dt>{props.name}</dt>
       <dd>{props.desc}</dd>
     </Mou.Fragment>
   );

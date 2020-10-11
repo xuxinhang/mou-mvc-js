@@ -1,4 +1,4 @@
-import Mou, { h } from '$/lib';
+import Mou from '$/lib';
 import { mount, refresh } from '../lib/core';
 
 const dataset = [

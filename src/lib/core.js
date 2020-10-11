@@ -80,7 +80,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       // node._tailRef = if as tail, (parentNode._tailRef ?? null); else, referVNode;
       // node._tailRef =
       //   afterNextBeforeIndex === null
-      //     ? parentNode._tailRef ?? null // TODO: calculate when used ?
+      //     ? parentNode._tailRef ?? null // TTODO: calculate when used ?
       //     : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
       // node._nextSibling = getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
       // console.log('_tailRef:\t', node);
@@ -96,7 +96,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
 
       // fn - mountSubRoot
       if (subRoot) {
-        subRoot._host = node;
+        subRoot._componentHost = node;
       }
 
       // TODO yank another function which accept the only one subRoot parameter.
@@ -143,7 +143,7 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
       console.assert(beforeNode.type === 'FRAGMENT' && afterNode.type === 'FRAGMENT');
 
-      // TODO: copy/update the value of _tailRef, _el and _host from the old fragment node
+      // TTODO: copy/update the value of _tailRef, _el and _host from the old fragment node
       // just simply copy the #_host. Because the node won't move cross layers
       // afterNode._host = beforeNode._host;
       // afterNode._tailRef =
@@ -209,7 +209,7 @@ function diffOne(tasker, parent, prevnode, vnode) {
   vnode._el = prevnode._el;
   vnode._uid = prevnode._uid;
   // if (prevnode._host) vnode._host = prevnode._host;
-  // TODO: 考虑放到 diffChildren 过程中 不论 fragment 是否移动都需要重新计算 _tailRef
+  // TTODO: 考虑放到 diffChildren 过程中 不论 fragment 是否移动都需要重新计算 _tailRef
   // if (prevnode._tailRef !== undefined && vnode._tailRef === undefined) {
   //   vnode._tailRef = prevnode._tailRef;
   // }
@@ -261,7 +261,7 @@ function diffSelf(tasker, beforeNode, afterNode) {
 
       // re-generate the new sub root node
       const subRoot = afterNode.tag(afterNode.props);
-      (afterNode._subRoot = subRoot) && (afterNode._subRoot._host = afterNode);
+      (afterNode._subRoot = subRoot) && (subRoot._componentHost = afterNode);
 
       const prevSubRoot = beforeNode._subRoot;
       // TODO yank the following into a new function.
@@ -352,7 +352,6 @@ function isNodeDiffable(a, b) {
 
 export function isNotEntityNode(node) {
   return node.type === 'FRAGMENT' || node.type === 'PROTAL' || node.type === 'COMPONENT';
-  // return node._host !== undefined && node._host !== null;
 }
 
 export function isEntityNode(node) {

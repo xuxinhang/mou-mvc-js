@@ -62,7 +62,7 @@ export function vdomInsert(
       node._el = null;
       // the host target node, because the fragment node has no entity
       node._host = parentNode._host ?? parentNode;
-      // TODO: node._host could also be assigned like the following:
+      // TTODO: node._host could also be assigned like the following:
       //   node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode
       //   const isNotEntityNode = node => node.type === 'FRAGMENT' || 'PROTAL';
 
@@ -75,7 +75,7 @@ export function vdomInsert(
           : afterNextBeforeIndex < 0
           ? mountingSet[~afterNextBeforeIndex]
           : beforeParent.children[afterNextBeforeIndex];
-      // TODO: isNotEntityNode(parentNode) ? parentNode._host : null
+      // TTODO: isNotEntityNode(parentNode) ? parentNode._host : null
       */
       break;
     }
@@ -121,19 +121,22 @@ function getTailRefEntityNode(node) {
 
   // eslint-disable-next-line
   while (true) {
-    if (current._host) {
-      // TODO current.type ===
-      current = current._host; // TODO no more #_host
-    } else if (current._nextSibling) {
-      const ref = getHeadEntityNode(current._nextSibling);
-      if (ref) return ref;
-      current = current._nextSibling;
-    } else if (current._parent) {
-      if (isEntityNode(current._parent)) return null;
-      current = current._parent;
+    if (current._componentHost) {
+      // for the sub node of a component
+      current = current._componentHost;
     } else {
-      // have reached the toppest node
-      return null;
+      // for other nodes
+      if (current._nextSibling) {
+        const ref = getHeadEntityNode(current._nextSibling);
+        if (ref) return ref;
+        current = current._nextSibling;
+      } else if (current._parent) {
+        if (isEntityNode(current._parent)) return null;
+        current = current._parent;
+      } else {
+        // have reached the toppest node
+        return null;
+      }
     }
   }
 }
@@ -141,24 +144,30 @@ function getTailRefEntityNode(node) {
 function getHeadEntityNode(root) {
   if (isEntityNode(root)) return root;
 
-  if (root.type === 'COMPONENT') {
-    return getHeadEntityNode(root._subRoot);
-  } else {
-    // TODO root.type === 'FRAGMENT'
-    for (const child of root.children) {
-      const result = getHeadEntityNode(child);
-      if (result) return result;
+  switch (root.type) {
+    case 'COMPONENT': {
+      return getHeadEntityNode(root._subRoot);
+    }
+    case 'FRAGMENT':
+    default: {
+      for (const child of root.children) {
+        const result = getHeadEntityNode(child);
+        if (result) return result;
+      }
     }
   }
+  console.assert(false);
 }
 
 function getNearestAncestorEntityNode(startNode) {
   for (let current = startNode; current; ) {
     if (isEntityNode(current)) return current;
 
-    if (current._host) {
-      current = current._host;
+    if (current._componentHost) {
+      // for the sub node of a component
+      current = current._componentHost;
     } else {
+      // for other nodes
       current = current._parent;
     }
   }

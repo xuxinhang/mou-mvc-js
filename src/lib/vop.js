@@ -28,7 +28,7 @@ export function vdomInsert(
   // set the redirect target for vnodes with a fragment parent
   // it's the key about how the fragment works!
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
-  const isComponentParentNode = parentNode.type === 'COMPONENT';
+  const isComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
   if (isFragmentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
     redirectedTailRefNode = getTailRefEntityNode(parentNode);
@@ -93,10 +93,10 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
 
   // set the redirect target for vnodes with a fragment parent
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
-  const isComponentParentNode = parentNode.type === 'COMPONENT';
+  const isFunctionalComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
   if (isFragmentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
-  } else if (isComponentParentNode) {
+  } else if (isFunctionalComponentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
   }
 
@@ -145,7 +145,7 @@ function getHeadEntityNode(root) {
   if (isEntityNode(root)) return root;
 
   switch (root.type) {
-    case 'COMPONENT': {
+    case 'COMPONENT_FUNCTIONAL': {
       return getHeadEntityNode(root._subRoot);
     }
     case 'FRAGMENT':

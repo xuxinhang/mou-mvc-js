@@ -89,12 +89,11 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       mountChildren(tasker, null, vnode);
       break;
     }
-    case 'COMPONENT': {
+    case 'COMPONENT_FUNCTIONAL': {
       const node = vnode;
       const subRoot = node.tag(node.props);
       node._subRoot = subRoot;
 
-      // fn - mountSubRoot
       if (subRoot) {
         subRoot._componentHost = node;
       }
@@ -158,10 +157,10 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       }
       break;
     }
-    case 'COMPONENT': {
+    case 'COMPONENT_FUNCTIONAL': {
       const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
       const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
-      console.assert(beforeNode.type === 'COMPONENT' && afterNode.type === 'COMPONENT');
+      console.assert(beforeNode.type === 'COMPONENT_FUNCTIONAL' && afterNode.type === 'COMPONENT_FUNCTIONAL');
       moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
     }
@@ -191,8 +190,7 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
       }
       break;
     }
-    case 'COMPONENT': {
-      // lifecycle functions
+    case 'COMPONENT_FUNCTIONAL': {
       unmountOne(tasker, node, null, null, 0);
       break;
     }
@@ -232,7 +230,7 @@ function diffOne(tasker, parent, prevnode, vnode) {
       diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
       break;
     }
-    case 'COMPONENT': {
+    case 'COMPONENT_FUNCTIONAL': {
       // just diffSelf is enough, the component node has no child.
       break;
     }
@@ -255,7 +253,7 @@ function diffSelf(tasker, beforeNode, afterNode) {
       }
       break;
     }
-    case 'COMPONENT': {
+    case 'COMPONENT_FUNCTIONAL': {
       console.assert(beforeNode._subRoot !== undefined);
       console.assert(beforeNode.tag === afterNode.tag);
 
@@ -346,12 +344,12 @@ function isNodeDiffable(a, b) {
   if (a.type !== b.type) return false;
   if (a.key !== b.key) return false;
   if (a.type === 'ELEMENT' && a.tag !== b.tag) return false;
-  if (a.type === 'COMPONENT' && a.tag !== b.tag) return false;
+  if (a.type === 'COMPONENT_FUNCTIONAL' && a.tag !== b.tag) return false;
   return true;
 }
 
 export function isNotEntityNode(node) {
-  return node.type === 'FRAGMENT' || node.type === 'PROTAL' || node.type === 'COMPONENT';
+  return node.type === 'FRAGMENT' || node.type === 'PROTAL' || node.type === 'COMPONENT_FUNCTIONAL';
 }
 
 export function isEntityNode(node) {

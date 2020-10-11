@@ -33,14 +33,14 @@ export default function createElement(tag, data = {}, ...children) {
   } else if (typeof tag === 'function') {
     const { ...props } = data;
     Object.assign(base, {
-      type: 'COMPONENT',
+      type: 'COMPONENT_FUNCTIONAL',
       tag,
       props,
       children: {},
     });
   } else {
     Object.assign(base, {
-      type: 'COMPONENT',
+      type: 'COMPONENT_FUNCTIONAL',
       tag,
       children: normalizeChildren(children),
     });

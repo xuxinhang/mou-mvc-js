@@ -28,6 +28,7 @@ export function getChildOrSubRootOrMountingNode(index, node, mountingSet) {
   }
 
   switch (node.type) {
+    case 'COMPONENT_STATEFUL':
     case 'COMPONENT_FUNCTIONAL': {
       return node._subRoot;
     }

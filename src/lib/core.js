@@ -104,11 +104,11 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       const Fn = node.tag;
 
       // initialize a component instance
-      const inst = new Fn();
-      node._inst = inst;
+      const inst = (node._inst = new Fn());
 
       // get the node tree
-      const subRoot = inst.render();
+      // TEMP: pass the props directly
+      const subRoot = inst.render(node.props);
       node._subRoot = subRoot;
       if (subRoot) subRoot._componentHost = node;
 
@@ -178,6 +178,13 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
     }
+    case 'COMPONENT_STATEFUL': {
+      const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
+      const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
+      console.assert(beforeNode.type === 'COMPONENT_STATEFUL' && afterNode.type === 'COMPONENT_STATEFUL');
+      moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
+      break;
+    }
     default:
       break;
   }
@@ -185,6 +192,7 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
 
 function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex) {
   console.assert(beforeIndex >= 0);
+  // here, node is the current node that is the child of the parent node.
   const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
 
   switch (node.type) {
@@ -205,6 +213,11 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
       break;
     }
     case 'COMPONENT_FUNCTIONAL': {
+      // TODO yank another function
+      unmountOne(tasker, node, null, null, 0);
+      break;
+    }
+    case 'COMPONENT_STATEFUL': {
       unmountOne(tasker, node, null, null, 0);
       break;
     }
@@ -244,6 +257,7 @@ function diffOne(tasker, parent, prevnode, vnode) {
       diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
       break;
     }
+    case 'COMPONENT_STATEFUL':
     case 'COMPONENT_FUNCTIONAL': {
       // just diffSelf is enough, the component node has no child.
       break;
@@ -256,6 +270,15 @@ function diffOne(tasker, parent, prevnode, vnode) {
 function diffSelf(tasker, beforeNode, afterNode) {
   console.assert(beforeNode.type === afterNode.type);
   const nodeType = beforeNode.type;
+
+  function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
+    if (isNodeDiffable(beforeSubRoot, afterSubRoot)) {
+      diffOne(tasker, afterHost, beforeSubRoot, afterSubRoot);
+    } else {
+      unmountOne(tasker, beforeHost, [], afterHost, 0, 0);
+      mountOne(tasker, beforeHost, [beforeSubRoot], afterHost, -1, 0, null);
+    }
+  }
 
   switch (nodeType) {
     case 'TEXT': {
@@ -284,6 +307,19 @@ function diffSelf(tasker, beforeNode, afterNode) {
         mountOne(tasker, beforeNode, [subRoot], afterNode, -1, 0, null);
       }
 
+      break;
+    }
+    case 'COMPONENT_STATEFUL': {
+      // diff the sub root node.
+      console.assert(beforeNode._inst._isComponentInst);
+
+      // copy the previous component instance to the afterNode.
+      const inst = (afterNode._inst = beforeNode._inst);
+      // re-generate the new sub-root node
+      const subRoot = inst.render(afterNode.props);
+      (afterNode._subRoot = subRoot) && (subRoot._componentHost = afterNode);
+
+      diffSubRoot(tasker, beforeNode, afterNode, beforeNode._subRoot, afterNode._subRoot);
       break;
     }
   }
@@ -363,7 +399,12 @@ function isNodeDiffable(a, b) {
 }
 
 export function isNotEntityNode(node) {
-  return node.type === 'FRAGMENT' || node.type === 'PROTAL' || node.type === 'COMPONENT_FUNCTIONAL';
+  return (
+    node.type === 'FRAGMENT' ||
+    node.type === 'PROTAL' ||
+    node.type === 'COMPONENT_FUNCTIONAL' ||
+    node.type === 'COMPONENT_STATEFUL'
+  );
 }
 
 export function isEntityNode(node) {

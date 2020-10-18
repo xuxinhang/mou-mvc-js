@@ -28,11 +28,15 @@ export function vdomInsert(
   // set the redirect target for vnodes with a fragment parent
   // it's the key about how the fragment works!
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
-  const isComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
+  const isFunctionalComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
+  const isStatefulComponentParentNode = parentNode.type === 'COMPONENT_STATEFUL';
   if (isFragmentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
     redirectedTailRefNode = getTailRefEntityNode(parentNode);
-  } else if (isComponentParentNode) {
+  } else if (isFunctionalComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+    redirectedTailRefNode = getTailRefEntityNode(parentNode);
+  } else if (isStatefulComponentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
     redirectedTailRefNode = getTailRefEntityNode(parentNode);
   }
@@ -94,9 +98,12 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
   // set the redirect target for vnodes with a fragment parent
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
   const isFunctionalComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
+  const isStatefulComponentParentNode = parentNode.type === 'COMPONENT_STATEFUL';
   if (isFragmentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
   } else if (isFunctionalComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+  } else if (isStatefulComponentParentNode) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
   }
 
@@ -121,6 +128,7 @@ function getTailRefEntityNode(node) {
 
   // eslint-disable-next-line
   while (true) {
+    // TODO === COMPONENT_***
     if (current._componentHost) {
       // for the sub node of a component
       current = current._componentHost;
@@ -145,6 +153,7 @@ function getHeadEntityNode(root) {
   if (isEntityNode(root)) return root;
 
   switch (root.type) {
+    case 'COMPONENT_STATEFUL':
     case 'COMPONENT_FUNCTIONAL': {
       return getHeadEntityNode(root._subRoot);
     }

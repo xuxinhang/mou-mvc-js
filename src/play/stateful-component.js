@@ -1,4 +1,4 @@
-import Mou from '$/lib';
+import Mou, { Component } from '$/lib';
 import { mount, refresh } from '../lib/core';
 
 const dataset = [
@@ -101,6 +101,25 @@ function Product(props) {
   );
 }
 
+class ProductPlus extends Component {
+  constructor() {
+    super();
+    this.state = {};
+  }
+
+  render(props) {
+    // const props = this.props;
+    return (
+      <li>
+        <picture>
+          <img srcSet={props.icon} />
+        </picture>
+        <span>{props.name}</span>
+      </li>
+    );
+  }
+}
+
 function getTree(dataset) {
   return (
     <>
@@ -108,12 +127,9 @@ function getTree(dataset) {
         <img srcSet="https://blobs.officehome.msocdn.com/versionless/webmanifestimages/OfficeDesktop_256.png" />
         Office 365
       </h2>
-      {/* <details>
-        <summary>{dataset.length} Products total</summary>Designed by Apple in California.
-      </details> */}
       <ul>
         {dataset.map(({ name, icon }) => (
-          <Product key={name} name={name} icon={icon} />
+          <ProductPlus key={name} name={name} icon={icon} />
         ))}
       </ul>
     </>

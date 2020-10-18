@@ -7,3 +7,5 @@ export default class BaseComponent {
     // const vnode = this.render();
   }
 }
+
+BaseComponent.prototype._isComponentInst = true;

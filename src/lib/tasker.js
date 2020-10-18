@@ -71,6 +71,10 @@ function mountNode(vnode, parentNode, refNode = null) {
     case 'ELEMENT':
       vnode._el = document.createElement(vnode.tag);
       parentNode.insertBefore(vnode._el, refNode);
+      // TEMP: append DOM attributes to the inserted element
+      if (vnode.attrs?.srcset !== undefined) {
+        vnode._el.setAttribute('srcset', vnode.attrs.srcset);
+      }
       break;
     case 'TEXT':
       vnode._el = document.createTextNode(vnode.text);

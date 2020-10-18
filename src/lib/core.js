@@ -93,12 +93,26 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       const node = vnode;
       const subRoot = node.tag(node.props);
       node._subRoot = subRoot;
-
-      if (subRoot) {
-        subRoot._componentHost = node;
-      }
+      if (subRoot) subRoot._componentHost = node;
 
       // TODO yank another function which accept the only one subRoot parameter.
+      mountOne(tasker, null, [subRoot], node, -1, 0, null);
+      break;
+    }
+    case 'COMPONENT_STATEFUL': {
+      const node = vnode;
+      const Fn = node.tag;
+
+      // initialize a component instance
+      const inst = new Fn();
+      node._inst = inst;
+
+      // get the node tree
+      const subRoot = inst.render();
+      node._subRoot = subRoot;
+      if (subRoot) subRoot._componentHost = node;
+
+      // append the mount task into the queue
       mountOne(tasker, null, [subRoot], node, -1, 0, null);
       break;
     }

@@ -3,7 +3,7 @@ export default class BaseComponent {
     throw new Error('Render function required.');
   }
 
-  mount(el) {
-    const vnode = this.render();
+  mount() {
+    // const vnode = this.render();
   }
 }

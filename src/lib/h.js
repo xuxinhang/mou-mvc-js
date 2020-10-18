@@ -30,20 +30,34 @@ export default function createElement(tag, data = {}, ...children) {
       on: {},
       children: normalizeChildren(children),
     });
+    // TEMP: add dom attrs.
+    if (data.srcSet !== undefined) {
+      base.attrs.srcset = data.srcSet;
+    }
   } else if (typeof tag === 'function') {
-    const { ...props } = data;
-    Object.assign(base, {
-      type: 'COMPONENT_FUNCTIONAL',
-      tag,
-      props,
-      children: {},
-    });
+    if (tag.prototype && tag.prototype.render) {
+      const { ...props } = data;
+      Object.assign(base, {
+        type: 'COMPONENT_STATEFUL',
+        tag,
+        props,
+        children: {},
+      });
+    } else {
+      const { ...props } = data;
+      Object.assign(base, {
+        type: 'COMPONENT_FUNCTIONAL',
+        tag,
+        props,
+        children: {},
+      });
+    }
   } else {
-    Object.assign(base, {
-      type: 'COMPONENT_FUNCTIONAL',
-      tag,
-      children: normalizeChildren(children),
-    });
+    // Object.assign(base, {
+    //   type: 'COMPONENT_FUNCTIONAL',
+    //   tag,
+    //   children: normalizeChildren(children),
+    // });
   }
 
   return base;

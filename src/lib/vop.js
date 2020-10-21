@@ -128,9 +128,8 @@ function getTailRefEntityNode(node) {
 
   // eslint-disable-next-line
   while (true) {
-    // TODO === COMPONENT_***
     if (current._componentHost) {
-      // for the sub node of a component
+      // if the node is the sub-node of a component
       current = current._componentHost;
     } else {
       // for other nodes

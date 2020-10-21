@@ -53,17 +53,13 @@ export default function createElement(tag, data = {}, ...children) {
       });
     }
   } else {
-    // Object.assign(base, {
-    //   type: 'COMPONENT_FUNCTIONAL',
-    //   tag,
-    //   children: normalizeChildren(children),
-    // });
+    console.assert(false, 'unknown node type');
   }
 
   return base;
 }
 
-function normalizeChildren(children) {
+export function normalizeChildren(children) {
   children = Array.isArray(children) ? children : children == null ? [] : [children];
   return children.map(normalizeVNode);
 }

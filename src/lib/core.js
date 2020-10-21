@@ -1,20 +1,7 @@
-import { normalizeVNode } from './h';
+import { normalizeChildren } from './h';
 import { apply, createDOMOperationTasker } from './tasker';
 import { vdomInsert, vdomRemove } from './vop';
 import { /* generateIndexArray, */ generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
-
-function constructHelperMountingRootNode(el, vnode) {
-  const hackedParentVNode = {
-    _isVNode: true,
-    _isMountingRoot: true, // TODO a better type mark?
-    _el: el,
-    _uid: -1,
-    type: 'ELEMENT', // TODO consider another type "ROOT"?
-    children: [vnode],
-  };
-
-  return hackedParentVNode;
-}
 
 export function mount(vnode, elem) {
   // clear the original element contains
@@ -23,26 +10,30 @@ export function mount(vnode, elem) {
 }
 
 export function refresh(prevnode, vnode, elem) {
-  vnode = normalizeVNode(vnode);
+  const constructHelperMountingRootNode = (el, vnode) => {
+    const hackedParentVNode = {
+      _isVNode: true,
+      // _isMountingRoot: true,
+      type: 'ELEMENT',
+      _el: el,
+      _uid: -1,
+      children: normalizeChildren(vnode),
+    };
+    return hackedParentVNode;
+  };
+
   const beforeHelperRootNode = constructHelperMountingRootNode(elem, prevnode);
   const afterHelperRootNode = constructHelperMountingRootNode(elem, vnode);
-  return _update(beforeHelperRootNode, afterHelperRootNode, prevnode, vnode);
-}
-
-function _update(beforeParent, afterParent, prevnode, vnode) {
-  if (prevnode == null && vnode == null) return;
 
   const tasker = createDOMOperationTasker();
 
-  // TODO maybe yank the following code into a seperated function
-  if (prevnode == null && vnode != null) {
-    mountChildren(tasker, beforeParent, afterParent);
-    // mountOne(tasker, parent, [vnode], parent, -1, 0, null);
-  } else if (prevnode != null && vnode == null) {
-    // TODO removeOne();
-  } else if (prevnode != null && vnode != null) {
-    diffChildren(tasker, beforeParent, afterParent, [prevnode], [vnode]);
-  }
+  diffChildren(
+    tasker,
+    beforeHelperRootNode,
+    afterHelperRootNode,
+    beforeHelperRootNode.children,
+    afterHelperRootNode.children
+  );
 
   apply(tasker);
 }
@@ -95,7 +86,6 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       node._subRoot = subRoot;
       if (subRoot) subRoot._componentHost = node;
 
-      // TODO yank another function which accept the only one subRoot parameter.
       mountOne(tasker, null, [subRoot], node, -1, 0, null);
       break;
     }
@@ -213,7 +203,6 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
       break;
     }
     case 'COMPONENT_FUNCTIONAL': {
-      // TODO yank another function
       unmountOne(tasker, node, null, null, 0);
       break;
     }
@@ -275,6 +264,8 @@ function diffSelf(tasker, beforeNode, afterNode) {
     if (isNodeDiffable(beforeSubRoot, afterSubRoot)) {
       diffOne(tasker, afterHost, beforeSubRoot, afterSubRoot);
     } else {
+      // TODO: consider to create the new functions: (un)mountSubRoot
+      //       because the so-called sub-root is not the child
       unmountOne(tasker, beforeHost, [], afterHost, 0, 0);
       mountOne(tasker, beforeHost, [beforeSubRoot], afterHost, -1, 0, null);
     }
@@ -298,14 +289,7 @@ function diffSelf(tasker, beforeNode, afterNode) {
       const subRoot = afterNode.tag(afterNode.props);
       (afterNode._subRoot = subRoot) && (subRoot._componentHost = afterNode);
 
-      const prevSubRoot = beforeNode._subRoot;
-      // TODO yank the following into a new function.
-      if (isNodeDiffable(prevSubRoot, subRoot)) {
-        diffOne(tasker, afterNode, prevSubRoot, subRoot);
-      } else {
-        unmountOne(tasker, beforeNode, [], afterNode, 0, 0);
-        mountOne(tasker, beforeNode, [subRoot], afterNode, -1, 0, null);
-      }
+      diffSubRoot(tasker, beforeNode, afterNode, beforeNode._subRoot, afterNode._subRoot);
 
       break;
     }

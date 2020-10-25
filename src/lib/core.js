@@ -92,13 +92,14 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
     case 'COMPONENT_STATEFUL': {
       const node = vnode;
       const Fn = node.tag;
+      const componentProps = node.props; // TODO
 
       // initialize a component instance
       const inst = (node._inst = new Fn());
+      inst.props = componentProps;
 
       // get the node tree
-      // TEMP: pass the props directly
-      const subRoot = inst.render(node.props);
+      const subRoot = inst.render(componentProps);
       node._subRoot = subRoot;
       if (subRoot) subRoot._componentHost = node;
 
@@ -296,11 +297,14 @@ function diffSelf(tasker, beforeNode, afterNode) {
     case 'COMPONENT_STATEFUL': {
       // diff the sub root node.
       console.assert(beforeNode._inst._isComponentInst);
+      const componentProps = afterNode.props; // TODO
 
       // copy the previous component instance to the afterNode.
       const inst = (afterNode._inst = beforeNode._inst);
+      inst.props = componentProps;
+
       // re-generate the new sub-root node
-      const subRoot = inst.render(afterNode.props);
+      const subRoot = inst.render(componentProps);
       (afterNode._subRoot = subRoot) && (subRoot._componentHost = afterNode);
 
       diffSubRoot(tasker, beforeNode, afterNode, beforeNode._subRoot, afterNode._subRoot);

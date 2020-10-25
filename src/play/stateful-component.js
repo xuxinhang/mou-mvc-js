@@ -107,14 +107,14 @@ class ProductPlus extends Component {
     this.state = {};
   }
 
-  render(props) {
-    // const props = this.props;
+  // eslint-disable-next-line
+  render(_props) {
     return (
       <li>
         <picture>
-          <img srcSet={props.icon} />
+          <img srcSet={this.props.icon} />
         </picture>
-        <span>{props.name}</span>
+        <span>{this.props.name}</span>
       </li>
     );
   }

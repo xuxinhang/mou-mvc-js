@@ -58,8 +58,8 @@ export function vdomInsert(
       });
       break;
     }
+    /*
     case 'FRAGMENT': {
-      /*
       const node = movedVNode;
 
       // the fragment node is linked to no DOM entity
@@ -80,9 +80,9 @@ export function vdomInsert(
           ? mountingSet[~afterNextBeforeIndex]
           : beforeParent.children[afterNextBeforeIndex];
       // TTODO: isNotEntityNode(parentNode) ? parentNode._host : null
-      */
       break;
     }
+    */
     default:
       break;
   }

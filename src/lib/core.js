@@ -92,10 +92,11 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
     case 'COMPONENT_STATEFUL': {
       const node = vnode;
       const Fn = node.tag;
-      const componentProps = node.props; // TODO
+      const componentProps = node.props;
 
       // initialize a component instance
       const inst = (node._inst = new Fn());
+      inst._node = node;
       inst.props = componentProps;
 
       // get the node tree
@@ -129,6 +130,15 @@ function mountChildren(tasker, beforeParent, afterParent) {
 
   for (let i = childNodes.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
     mountOne(tasker, beforeParent, childNodes, afterParent, ~i, i, lastIndex === null ? lastIndex : ~lastIndex);
+  }
+}
+
+function unmountChildren(tasker, beforeParent) {
+  const node = beforeParent;
+
+  // recursively remove all of its children
+  for (let i = 0; i < node.children.length; i++) {
+    unmountOne(tasker, node, null, null, i);
   }
 }
 
@@ -197,10 +207,7 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
       break;
     }
     case 'FRAGMENT': {
-      // recursively remove all of its children
-      for (let i = 0; i < node.children.length; i++) {
-        unmountOne(tasker, node, null, null, i);
-      }
+      unmountChildren(tasker, node);
       break;
     }
     case 'COMPONENT_FUNCTIONAL': {
@@ -221,6 +228,7 @@ function diffOne(tasker, parent, prevnode, vnode) {
   console.assert(prevnode.type === vnode.type);
 
   // copy the meta data
+  // TODO: move into case branches, only entity nodes have #_el
   vnode._el = prevnode._el;
   vnode._uid = prevnode._uid;
   // if (prevnode._host) vnode._host = prevnode._host;
@@ -297,10 +305,12 @@ function diffSelf(tasker, beforeNode, afterNode) {
     case 'COMPONENT_STATEFUL': {
       // diff the sub root node.
       console.assert(beforeNode._inst._isComponentInst);
-      const componentProps = afterNode.props; // TODO
+      const componentProps = afterNode.props;
 
-      // copy the previous component instance to the afterNode.
+      // reuse the previous component instance for the afterNode.
       const inst = (afterNode._inst = beforeNode._inst);
+      console.assert(inst._node === beforeNode);
+      inst._node = afterNode;
       inst.props = componentProps;
 
       // re-generate the new sub-root node

@@ -1,7 +1,6 @@
-import { normalizeChildren } from './h';
-import { apply, createDOMOperationTasker } from './tasker';
+import { applyTasker, createDOMOperationTasker } from './tasker';
 import { vdomInsert, vdomRemove } from './vop';
-import { /* generateIndexArray, */ generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
+import { generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
 
 export function mount(vnode, elem) {
   // clear the original element contains
@@ -10,32 +9,31 @@ export function mount(vnode, elem) {
 }
 
 export function refresh(prevnode, vnode, elem) {
-  const constructHelperMountingRootNode = (el, vnode) => {
+  const constructMountingHostNode = (el, vnode) => {
     const hackedParentVNode = {
       _isVNode: true,
-      // _isMountingRoot: true,
-      type: 'ELEMENT',
+      type: 'MOUNTING_HOST_ELEMENT',
       _el: el,
-      _uid: -1,
-      children: normalizeChildren(vnode),
+      _uid: 0,
+      _subRoot: vnode,
     };
     return hackedParentVNode;
   };
 
-  const beforeHelperRootNode = constructHelperMountingRootNode(elem, prevnode);
-  const afterHelperRootNode = constructHelperMountingRootNode(elem, vnode);
+  const beforeMountingHostNode = constructMountingHostNode(elem, prevnode);
+  const afterMountingHostNode = constructMountingHostNode(elem, vnode);
 
   const tasker = createDOMOperationTasker();
 
-  diffChildren(
+  diffSubRoot(
     tasker,
-    beforeHelperRootNode,
-    afterHelperRootNode,
-    beforeHelperRootNode.children,
-    afterHelperRootNode.children
+    beforeMountingHostNode,
+    afterMountingHostNode,
+    beforeMountingHostNode._subRoot,
+    afterMountingHostNode._subRoot
   );
 
-  apply(tasker);
+  applyTasker(tasker);
 }
 
 function mountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
@@ -251,7 +249,6 @@ function diffNode(tasker, beforeNode, afterNode) {
 
   switch (nodeType) {
     case 'ELEMENT': {
-      console.log(beforeNode._el);
       console.assert(beforeNode.tag === afterNode.tag);
       afterNode._el = beforeNode._el;
 
@@ -377,7 +374,7 @@ function mountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot
     host = afterHost;
 
   root._uid = generateUID();
-  root._hostComponent = host;
+  root._componentHost = host;
 
   switch (root.type) {
     case 'ELEMENT': {
@@ -454,11 +451,14 @@ function moveSubRoot() {
 }
 
 function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
-  if (isNodeDiffable(beforeSubRoot, afterSubRoot)) {
+  console.assert(beforeSubRoot === beforeHost._subRoot);
+
+  if (beforeSubRoot && afterSubRoot && isNodeDiffable(beforeSubRoot, afterSubRoot)) {
+    afterSubRoot._componentHost = afterHost;
     diffNode(tasker, beforeSubRoot, afterSubRoot);
   } else {
-    unmountSubRoot(tasker, beforeHost, null, beforeHost._subRoot, null);
-    mountSubRoot(tasker, null, afterHost, null, afterSubRoot);
+    if (beforeHost._subRoot) unmountSubRoot(tasker, beforeHost, null, beforeHost._subRoot, null);
+    if (afterSubRoot) mountSubRoot(tasker, null, afterHost, null, afterSubRoot);
   }
 }
 

@@ -2,7 +2,7 @@
  * Tasker Manager Module
  */
 
-export function apply(tasker) {
+export function applyTasker(tasker) {
   console.debug('Tasker Queue: ', tasker.queue);
 
   const state = {};

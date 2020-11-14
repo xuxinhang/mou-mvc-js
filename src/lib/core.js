@@ -38,9 +38,9 @@ export function refresh(prevnode, vnode, elem) {
   apply(tasker);
 }
 
-function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
+function mountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   console.assert(beforeIndex < 0);
-  const vnode = mountingSet[~beforeIndex];
+  const vnode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
 
   vnode._uid = generateUID();
   vnode._parent = afterParent;
@@ -129,7 +129,7 @@ function mountChildren(tasker, beforeParent, afterParent) {
   }
 
   for (let i = childNodes.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
-    mountOne(tasker, beforeParent, childNodes, afterParent, ~i, i, lastIndex === null ? lastIndex : ~lastIndex);
+    mountChild(tasker, beforeParent, childNodes, afterParent, ~i, i, lastIndex === null ? lastIndex : ~lastIndex);
   }
 }
 
@@ -137,11 +137,11 @@ function unmountChildren(tasker, beforeParent) {
   const node = beforeParent;
   // recursively remove all of its children
   for (let i = 0; i < node.children.length; i++) {
-    unmountOne(tasker, node, null, null, i);
+    unmountChild(tasker, node, null, null, i);
   }
 }
 
-function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
+function moveChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   console.assert(beforeIndex >= 0);
   const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
 
@@ -167,7 +167,7 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
 
       for (let i = beforeNode.children.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
         // insert each child of this fragment one by one
-        moveOne(tasker, beforeNode, [], afterNode, i, i, lastIndex);
+        moveChild(tasker, beforeNode, [], afterNode, i, i, lastIndex);
       }
       break;
     }
@@ -175,14 +175,14 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
       const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
       const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
       console.assert(beforeNode.type === 'COMPONENT_FUNCTIONAL' && afterNode.type === 'COMPONENT_FUNCTIONAL');
-      moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
+      moveChild(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
     }
     case 'COMPONENT_STATEFUL': {
       const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
       const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent);
       console.assert(beforeNode.type === 'COMPONENT_STATEFUL' && afterNode.type === 'COMPONENT_STATEFUL');
-      moveOne(tasker, beforeNode, [], afterNode, 0, 0, null);
+      moveChild(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
     }
     default:
@@ -190,7 +190,7 @@ function moveOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, af
   }
 }
 
-function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex) {
+function unmountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex) {
   console.assert(beforeIndex >= 0);
   // here, node is the current node that is the child of the parent node.
   const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
@@ -222,76 +222,74 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
   }
 }
 
-function diffOne(tasker, parent, prevnode, vnode) {
-  // the diff operation is only avaliable for two nodes with the same node type
-  console.assert(prevnode.type === vnode.type);
-
-  // copy the meta data
-  // TODO: move into case branches, only entity nodes have #_el
-  vnode._el = prevnode._el;
-  vnode._uid = prevnode._uid;
-  // if (prevnode._host) vnode._host = prevnode._host;
-  // TTODO: 考虑放到 diffChildren 过程中 不论 fragment 是否移动都需要重新计算 _tailRef
-  // if (prevnode._tailRef !== undefined && vnode._tailRef === undefined) {
-  //   vnode._tailRef = prevnode._tailRef;
-  // }
-
-  diffSelf(tasker, prevnode, vnode);
-
-  switch (prevnode.type) {
-    case 'ELEMENT': {
-      if (prevnode.tag !== vnode.tag) {
-        diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
-      } else {
-        diffSelf(tasker, prevnode, vnode);
-        diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
-      }
-      break;
-    }
-    case 'TEXT':
-      break;
-    case 'FRAGMENT': {
-      diffChildren(tasker, prevnode, vnode, prevnode.children, vnode.children);
-      break;
-    }
-    case 'COMPONENT_STATEFUL':
-    case 'COMPONENT_FUNCTIONAL': {
-      // just diffSelf is enough, the component node has no child.
-      break;
-    }
-    default:
-      break;
-  }
+function diffChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex) {
+  console.assert(afterIndex >= 0);
+  diffNode(
+    tasker,
+    getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet),
+    getChildOrSubRootOrMountingNode(afterIndex, afterParent, null)
+  );
 }
 
-function diffSelf(tasker, beforeNode, afterNode) {
+function diffNode(tasker, beforeNode, afterNode) {
+  // the diff operation is only avaliable for two nodes with the same node type
   console.assert(beforeNode.type === afterNode.type);
   const nodeType = beforeNode.type;
 
+  // copy the meta data
+  // afterNode._el = beforeNode._el;
+  afterNode._uid = beforeNode._uid;
+  // if (beforeNode._host) afterNode._host = beforeNode._host;
+  // TTODO: 考虑放到 diffChildren 过程中 不论 fragment 是否移动都需要重新计算 _tailRef
+  // if (beforeNode._tailRef !== undefined && afterNode._tailRef === undefined) {
+  //   afterNode._tailRef = beforeNode._tailRef;
+  // }
+
+  // There are two steps for diffing a node:
+  //   1) diff itself - attrs and dom props for element/text nodes, or sub root for component nodes
+  //   2) diff its children (if exist)
+
   switch (nodeType) {
+    case 'ELEMENT': {
+      console.log(beforeNode._el);
+      console.assert(beforeNode.tag === afterNode.tag);
+      afterNode._el = beforeNode._el;
+
+      // FUTURE: diff on its attrs and dom props, etc.
+
+      // diff its children nodes
+      diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
+      break;
+    }
     case 'TEXT': {
-      console.assert(beforeNode._el && beforeNode._el.textContent === beforeNode.text);
-      console.assert(beforeNode._el === afterNode._el);
+      console.assert(beforeNode._el);
+      console.assert(beforeNode._el.textContent === beforeNode.text);
+      afterNode._el = beforeNode._el;
+
+      // diff its text content in dom
       if (beforeNode.text !== afterNode.text) {
         tasker.enqueue({ type: 'updateTextContent', selfNode: afterNode });
-        // console.log(beforeNode.text, afterNode.text);
       }
+
+      // the text node has no child
+      break;
+    }
+    case 'FRAGMENT': {
+      // the fragment node has no its own prop, so just diff its children
+      diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
       break;
     }
     case 'COMPONENT_FUNCTIONAL': {
       console.assert(beforeNode._subRoot !== undefined);
       console.assert(beforeNode.tag === afterNode.tag);
 
-      // re-generate the new sub root node
+      // re-generate the new sub root node, and then diff it.
       const subRoot = afterNode.tag(afterNode.props);
       (afterNode._subRoot = subRoot) && (subRoot._componentHost = afterNode);
-
       diffSubRoot(tasker, beforeNode, afterNode, beforeNode._subRoot, afterNode._subRoot);
-
       break;
     }
     case 'COMPONENT_STATEFUL': {
-      // diff the sub root node.
       console.assert(beforeNode._inst._isComponentInst);
       const componentProps = afterNode.props;
 
@@ -301,16 +299,15 @@ function diffSelf(tasker, beforeNode, afterNode) {
       inst._node = afterNode;
       inst.props = componentProps;
 
-      // re-generate the new sub-root node
+      // re-generate the new sub-root node, and then diff it.
       const subRoot = inst.render(componentProps);
       (afterNode._subRoot = subRoot) && (subRoot._componentHost = afterNode);
-
       diffSubRoot(tasker, beforeNode, afterNode, beforeNode._subRoot, afterNode._subRoot);
       break;
     }
+    default:
+      break;
   }
-
-  return;
 }
 
 function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
@@ -336,7 +333,6 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
     a_k._parent = parent;
 
     let b_i = beforeNodes.findIndex((n, i) => !isBeforeNodeReused[i] && isNodeDiffable(n, a_k));
-    const b_k = beforeNodes[b_i];
     if (b_i === -1) {
       const beforeIndex = -mountingSet.push(a_k);
       setAfterNextBeforeIndexOfTheLastInsertRecord(beforeIndex);
@@ -348,7 +344,8 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
       } else {
         lastIndex = b_i;
       }
-      diffOne(tasker, parent, b_k, a_k);
+      // afterNextBeforeIndex is unknown now.
+      diffChild(tasker, prevParent, null, parent, b_i, a_i, undefined);
       isBeforeNodeReused[b_i] = true;
     }
   }
@@ -361,15 +358,15 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
   // unmount the un-used nodes
   for (let b_i = 0; b_i < beforeNodes.length; b_i++) {
     if (isBeforeNodeReused[b_i]) continue;
-    unmountOne(tasker, prevParent, mountingSet, parent, b_i, undefined, undefined);
+    unmountChild(tasker, prevParent, mountingSet, parent, b_i, undefined, undefined);
   }
 
   const sortedChildInsertRecord = childInsertRecord.sort((a, b) => b.afterIndex - a.afterIndex);
   for (const r of sortedChildInsertRecord) {
     if (r.beforeIndex < 0) {
-      mountOne(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
+      mountChild(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     } else {
-      moveOne(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
+      moveChild(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     }
   }
 }
@@ -458,12 +455,10 @@ function moveSubRoot() {
 
 function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
   if (isNodeDiffable(beforeSubRoot, afterSubRoot)) {
-    diffOne(tasker, afterHost, beforeSubRoot, afterSubRoot);
+    diffNode(tasker, beforeSubRoot, afterSubRoot);
   } else {
     unmountSubRoot(tasker, beforeHost, null, beforeHost._subRoot, null);
     mountSubRoot(tasker, null, afterHost, null, afterSubRoot);
-    // unmountOne(tasker, beforeHost, [], afterHost, 0);
-    // mountOne(tasker, beforeHost, [beforeSubRoot], afterHost, -1, 0, null);
   }
 }
 

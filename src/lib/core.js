@@ -43,7 +43,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
   const vnode = mountingSet[~beforeIndex];
 
   vnode._uid = generateUID();
-  vnode._parent = afterParent; // TODO maybe removed one day.
+  vnode._parent = afterParent;
 
   switch (vnode.type) {
     case 'ELEMENT': {
@@ -86,7 +86,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       node._subRoot = subRoot;
       if (subRoot) subRoot._componentHost = node;
 
-      mountOne(tasker, null, [subRoot], node, -1, 0, null);
+      mountSubRoot(tasker, null, node, null, subRoot);
       break;
     }
     case 'COMPONENT_STATEFUL': {
@@ -105,7 +105,7 @@ function mountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex, a
       if (subRoot) subRoot._componentHost = node;
 
       // append the mount task into the queue
-      mountOne(tasker, null, [subRoot], node, -1, 0, null);
+      mountSubRoot(tasker, null, node, null, subRoot);
       break;
     }
     // and other cases for different vnode.type:
@@ -135,7 +135,6 @@ function mountChildren(tasker, beforeParent, afterParent) {
 
 function unmountChildren(tasker, beforeParent) {
   const node = beforeParent;
-
   // recursively remove all of its children
   for (let i = 0; i < node.children.length; i++) {
     unmountOne(tasker, node, null, null, i);
@@ -211,11 +210,11 @@ function unmountOne(tasker, beforeParent, mountingSet, afterParent, beforeIndex)
       break;
     }
     case 'COMPONENT_FUNCTIONAL': {
-      unmountOne(tasker, node, null, null, 0);
+      unmountSubRoot(tasker, node, null, node._subRoot, null);
       break;
     }
     case 'COMPONENT_STATEFUL': {
-      unmountOne(tasker, node, null, null, 0);
+      unmountSubRoot(tasker, node, null, node._subRoot, null);
       break;
     }
     default:
@@ -268,17 +267,6 @@ function diffOne(tasker, parent, prevnode, vnode) {
 function diffSelf(tasker, beforeNode, afterNode) {
   console.assert(beforeNode.type === afterNode.type);
   const nodeType = beforeNode.type;
-
-  function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
-    if (isNodeDiffable(beforeSubRoot, afterSubRoot)) {
-      diffOne(tasker, afterHost, beforeSubRoot, afterSubRoot);
-    } else {
-      // TODO: consider to create the new functions: (un)mountSubRoot
-      //       because the so-called sub-root is not the child
-      unmountOne(tasker, beforeHost, [], afterHost, 0, 0);
-      mountOne(tasker, beforeHost, [beforeSubRoot], afterHost, -1, 0, null);
-    }
-  }
 
   switch (nodeType) {
     case 'TEXT': {
@@ -383,6 +371,99 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
     } else {
       moveOne(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     }
+  }
+}
+
+function mountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
+  console.assert(beforeSubRoot == null && beforeHost == null);
+  const root = afterSubRoot,
+    host = afterHost;
+
+  root._uid = generateUID();
+  root._hostComponent = host;
+
+  switch (root.type) {
+    case 'ELEMENT': {
+      vdomInsert(tasker, null, [root], host, -1, 0, null);
+      mountChildren(tasker, null, root);
+      break;
+    }
+    case 'TEXT': {
+      vdomInsert(tasker, null, [root], host, -1, 0, null);
+      break;
+    }
+    case 'FRAGMENT': {
+      root._el = null;
+      mountChildren(tasker, null, root);
+      break;
+    }
+    case 'COMPONENT_FUNCTIONAL': {
+      const subRoot = (root._subRoot = root.tag(root.props));
+      if (subRoot) subRoot._componentHost = root;
+      mountSubRoot(tasker, null, root, null, subRoot);
+      break;
+    }
+    case 'COMPONENT_STATEFUL': {
+      const inst = (root._inst = new root.tag());
+      inst.props = root.props;
+      inst._node = root;
+
+      const subRoot = (root._subRoot = inst.render());
+      if (subRoot) subRoot._componentHost = root;
+
+      mountSubRoot(tasker, null, root, null, subRoot);
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+function unmountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
+  console.assert(afterSubRoot == null && afterHost == null);
+  const root = beforeSubRoot,
+    host = beforeHost;
+
+  switch (root.type) {
+    case 'ELEMENT': {
+      // recursively remove all of its children
+      vdomRemove(tasker, host, null, 0);
+      break;
+    }
+    case 'TEXT': {
+      vdomRemove(tasker, host, null, 0);
+      break;
+    }
+    case 'FRAGMENT': {
+      unmountChildren(tasker, root);
+      break;
+    }
+    case 'COMPONENT_FUNCTIONAL': {
+      unmountSubRoot(tasker, root, null, root._subRoot, null);
+      break;
+    }
+    case 'COMPONENT_STATEFUL': {
+      unmountSubRoot(tasker, root, null, root._subRoot, null);
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+// eslint-disable-next-line
+function moveSubRoot() {
+  // Emm... There is no so-called "move sub-root"
+}
+
+function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
+  if (isNodeDiffable(beforeSubRoot, afterSubRoot)) {
+    diffOne(tasker, afterHost, beforeSubRoot, afterSubRoot);
+  } else {
+    unmountSubRoot(tasker, beforeHost, null, beforeHost._subRoot, null);
+    mountSubRoot(tasker, null, afterHost, null, afterSubRoot);
+    // unmountOne(tasker, beforeHost, [], afterHost, 0);
+    // mountOne(tasker, beforeHost, [beforeSubRoot], afterHost, -1, 0, null);
   }
 }
 

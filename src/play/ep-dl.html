@@ -3,7 +3,31 @@
   <head>
     <title>Just Run</title>
     <meta charset="utf-8" />
-    <link href="common.css" rel="stylesheet" />
+    <style>
+      #start main {
+        border: dashed black 1px;
+        padding: 0.1em;
+      }
+
+      #start section {
+        padding: 0 1em;
+        margin-bottom: 0.5em;
+        border-top: solid goldenrod thick;
+        background: cornsilk;
+      }
+
+      #start section::before {
+        display: block;
+        font-size: smaller;
+        content: 'Section';
+      }
+
+      section {
+        display: block;
+        margin-bottom: 2em;
+        border: gray solid medium;
+      }
+    </style>
   </head>
   <body>
     <section id="ep-dl">

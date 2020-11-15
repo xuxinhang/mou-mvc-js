@@ -449,7 +449,7 @@ function moveSubRoot() {
   // Emm... There is no so-called "move sub-root"
 }
 
-function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
+export function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
   console.assert(beforeSubRoot === beforeHost._subRoot);
 
   if (beforeSubRoot && afterSubRoot && isNodeDiffable(beforeSubRoot, afterSubRoot)) {

@@ -1,5 +1,5 @@
 import h from './h';
-import BaseComponent from './base-component';
+import { BaseComponent } from './component';
 
 export { h };
 export { h as createElement };

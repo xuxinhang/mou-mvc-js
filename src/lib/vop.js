@@ -154,9 +154,11 @@ function getHeadEntityNode(root) {
   switch (root.type) {
     case 'COMPONENT_STATEFUL':
     case 'COMPONENT_FUNCTIONAL': {
-      return getHeadEntityNode(root._subRoot);
+      if (root._subRoot) {
+        return getHeadEntityNode(root._subRoot);
+      }
     }
-    case 'FRAGMENT':
+    case 'FRAGMENT': // eslint-disable-line no-fallthrough
     default: {
       for (const child of root.children) {
         const result = getHeadEntityNode(child);

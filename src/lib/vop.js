@@ -58,31 +58,6 @@ export function vdomInsert(
       });
       break;
     }
-    /*
-    case 'FRAGMENT': {
-      const node = movedVNode;
-
-      // the fragment node is linked to no DOM entity
-      node._el = null;
-      // the host target node, because the fragment node has no entity
-      node._host = parentNode._host ?? parentNode;
-      // TTODO: node._host could also be assigned like the following:
-      //   node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode
-      //   const isNotEntityNode = node => node.type === 'FRAGMENT' || 'PROTAL';
-
-      // use _tailRef to mark the tail of a fragment node in the host target node
-      // _tailRef represents the sibling node of the fragment node, or null if itself is the last one
-      // node._tailRef = if as tail, (parentNode._tailRef ?? null); else, referVNode;
-      node._tailRef =
-        afterNextBeforeIndex === null
-          ? parentNode._tailRef ?? null
-          : afterNextBeforeIndex < 0
-          ? mountingSet[~afterNextBeforeIndex]
-          : beforeParent.children[afterNextBeforeIndex];
-      // TTODO: isNotEntityNode(parentNode) ? parentNode._host : null
-      break;
-    }
-    */
     default:
       break;
   }

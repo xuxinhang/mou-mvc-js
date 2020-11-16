@@ -38,15 +38,15 @@ export function refresh(prevnode, vnode, elem) {
 
 function mountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   console.assert(beforeIndex < 0);
-  const vnode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
+  const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
 
-  vnode._uid = generateUID();
-  vnode._parent = afterParent;
+  node._uid = generateUID();
+  node._parent = afterParent;
 
-  switch (vnode.type) {
+  switch (node.type) {
     case 'ELEMENT': {
       vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
-      mountChildren(tasker, vnode, vnode);
+      mountChildren(tasker, null, node);
       break;
     }
     case 'TEXT': {
@@ -54,55 +54,27 @@ function mountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex,
       break;
     }
     case 'FRAGMENT': {
-      const node = vnode;
-
-      // the fragment node is linked to no DOM entity
-      node._el = null;
-
-      // const parentNode = afterParent;
-      // the host target node, because the fragment node has no entity
-      //   node._host = parentNode._host ?? parentNode;
-      // node._host = isNotEntityNode(parentNode) ? parentNode._host : parentNode;
-
-      // use _tailRef to mark the tail of a fragment node in the host target node
-      // _tailRef represents the sibling node of the fragment node, or null if itself is the last one
-      // node._tailRef = if as tail, (parentNode._tailRef ?? null); else, referVNode;
-      // node._tailRef =
-      //   afterNextBeforeIndex === null
-      //     ? parentNode._tailRef ?? null // TTODO: calculate when used ?
-      //     : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
-      // node._nextSibling = getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
-      // console.log('_tailRef:\t', node);
-
-      vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
-      mountChildren(tasker, null, vnode);
+      node._el = null; // the fragment node is linked to no DOM entity
+      mountChildren(tasker, null, node);
       break;
     }
     case 'COMPONENT_FUNCTIONAL': {
-      const node = vnode;
       const subRoot = node.tag(node.props);
-
       mountSubRoot(tasker, null, node, null, subRoot);
       break;
     }
     case 'COMPONENT_STATEFUL': {
-      const node = vnode;
-      const Fn = node.tag;
       const componentProps = node.props;
-
       // initialize a component instance
-      const inst = (node._inst = new Fn());
+      const inst = (node._inst = new node.tag());
       inst._node = node;
       inst.props = componentProps;
-
       // get the node tree
       const subRoot = inst.render(componentProps);
 
-      // append the mount task into the queue
       mountSubRoot(tasker, null, node, null, subRoot);
       break;
     }
-    // and other cases for different vnode.type:
     default:
       break;
   }
@@ -149,15 +121,6 @@ function moveChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, 
     }
     case 'FRAGMENT': {
       console.assert(beforeNode.type === 'FRAGMENT' && afterNode.type === 'FRAGMENT');
-
-      // TTODO: copy/update the value of _tailRef, _el and _host from the old fragment node
-      // just simply copy the #_host. Because the node won't move cross layers
-      // afterNode._host = beforeNode._host;
-      // afterNode._tailRef =
-      //   afterNextBeforeIndex === null
-      //     ? beforeParent._tailRef ?? null
-      //     : getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
-      // afterNode._nextSibling = getChildByIndex(afterNextBeforeIndex, beforeParent.children, mountingSet);
 
       for (let i = beforeNode.children.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
         // insert each child of this fragment one by one
@@ -216,6 +179,7 @@ function unmountChild(tasker, beforeParent, mountingSet, afterParent, beforeInde
 
 function diffChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex) {
   console.assert(afterIndex >= 0);
+
   diffNode(
     tasker,
     getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet),
@@ -229,13 +193,7 @@ function diffNode(tasker, beforeNode, afterNode) {
   const nodeType = beforeNode.type;
 
   // copy the meta data
-  // afterNode._el = beforeNode._el;
   afterNode._uid = beforeNode._uid;
-  // if (beforeNode._host) afterNode._host = beforeNode._host;
-  // TTODO: 考虑放到 diffChildren 过程中 不论 fragment 是否移动都需要重新计算 _tailRef
-  // if (beforeNode._tailRef !== undefined && afterNode._tailRef === undefined) {
-  //   afterNode._tailRef = beforeNode._tailRef;
-  // }
 
   // There are two steps for diffing a node:
   //   1) diff itself - attrs and dom props for element/text nodes, or sub root for component nodes
@@ -245,9 +203,7 @@ function diffNode(tasker, beforeNode, afterNode) {
     case 'ELEMENT': {
       console.assert(beforeNode.tag === afterNode.tag);
       afterNode._el = beforeNode._el;
-
       // FUTURE: diff on its attrs and dom props, etc.
-
       // diff its children nodes
       diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
       break;
@@ -396,9 +352,10 @@ function mountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot
       break;
     }
     case 'COMPONENT_STATEFUL': {
+      const componentProps = root.props;
       const inst = (root._inst = new root.tag());
-      inst.props = root.props;
       inst._node = root;
+      inst.props = componentProps;
 
       const subRoot = inst.render();
 
@@ -441,6 +398,7 @@ function unmountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRo
       break;
   }
 
+  // finally remove the sub-root link
   if (afterHost) afterHost._subRoot = null;
 }
 

@@ -1,5 +1,5 @@
 /**
- * Tasker Manager Module
+ * DOM Operation Tasker Manager Module
  */
 
 export function applyTasker(tasker) {

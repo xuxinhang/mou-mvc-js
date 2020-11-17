@@ -1,5 +1,5 @@
 import { applyTasker, createDOMOperationTasker } from './tasker';
-import { vdomInsert, vdomRemove } from './vop';
+import { removeEntity, insertEntity } from './vop';
 import { generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
 
 export function mount(vnode, elem) {
@@ -38,19 +38,31 @@ export function refresh(prevnode, vnode, elem) {
 
 function mountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   console.assert(beforeIndex < 0);
-  const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent, mountingSet);
+  const node = getChildOrSubRootOrMountingNode(beforeIndex, null, mountingSet);
 
   node._uid = generateUID();
   node._parent = afterParent;
 
+  // beforeParent might be null
+  console.assert(
+    afterNextBeforeIndex === null || afterNextBeforeIndex < 0 || (afterNextBeforeIndex >= 0 && beforeParent)
+  );
+  const refNode =
+    afterNextBeforeIndex === null
+      ? null
+      : getChildOrSubRootOrMountingNode(afterNextBeforeIndex, beforeParent, mountingSet);
+  mountNode(tasker, afterParent, node, refNode);
+}
+
+function mountNode(tasker, upper /* parent or host */, node, ref) {
   switch (node.type) {
     case 'ELEMENT': {
-      vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
+      insertEntity(tasker, upper, node, ref, -1);
       mountChildren(tasker, null, node);
       break;
     }
     case 'TEXT': {
-      vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
+      insertEntity(tasker, upper, node, ref, -1);
       break;
     }
     case 'FRAGMENT': {
@@ -70,7 +82,7 @@ function mountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex,
       inst._node = node;
       inst.props = componentProps;
       // get the node tree
-      const subRoot = inst.render(componentProps);
+      const subRoot = inst.render();
 
       mountSubRoot(tasker, null, node, null, subRoot);
       break;
@@ -110,13 +122,16 @@ function moveChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, 
   console.assert(beforeIndex >= 0);
   const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
   const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent, null);
-
   afterNode._parent = afterParent;
 
   switch (beforeNode.type) {
     case 'ELEMENT':
     case 'TEXT': {
-      vdomInsert(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex);
+      const refNode =
+        afterNextBeforeIndex === null
+          ? null
+          : getChildOrSubRootOrMountingNode(afterNextBeforeIndex, beforeParent, mountingSet);
+      insertEntity(tasker, afterParent, beforeNode, refNode, beforeIndex);
       break;
     }
     case 'FRAGMENT': {
@@ -150,14 +165,18 @@ function unmountChild(tasker, beforeParent, mountingSet, afterParent, beforeInde
   // here, node is the current node that is the child of the parent node.
   const node = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
 
+  unmountNode(tasker, beforeParent, node);
+}
+
+function unmountNode(tasker, upper /* parent or host */, node) {
   switch (node.type) {
     case 'ELEMENT': {
       // just simply delete this element and all of its children will go
-      vdomRemove(tasker, beforeParent, afterParent, beforeIndex);
+      removeEntity(tasker, upper, node);
       break;
     }
     case 'TEXT': {
-      vdomRemove(tasker, beforeParent, afterParent, beforeIndex);
+      removeEntity(tasker, upper, node);
       break;
     }
     case 'FRAGMENT': {
@@ -318,12 +337,8 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
 
 function mountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
   console.assert(beforeSubRoot === null);
-
-  // link sub-root
-  afterHost._subRoot = afterSubRoot;
-
-  // when this host has no sub-root
-  if (afterSubRoot === null) return;
+  afterHost._subRoot = afterSubRoot; // link sub-root
+  if (afterSubRoot === null) return; // when this host has no sub-root
 
   const root = afterSubRoot,
     host = afterHost;
@@ -331,40 +346,7 @@ function mountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot
   root._uid = generateUID();
   root._componentHost = host;
 
-  switch (root.type) {
-    case 'ELEMENT': {
-      vdomInsert(tasker, null, [root], host, -1, 0, null);
-      mountChildren(tasker, null, root);
-      break;
-    }
-    case 'TEXT': {
-      vdomInsert(tasker, null, [root], host, -1, 0, null);
-      break;
-    }
-    case 'FRAGMENT': {
-      root._el = null;
-      mountChildren(tasker, null, root);
-      break;
-    }
-    case 'COMPONENT_FUNCTIONAL': {
-      const subRoot = root.tag(root.props);
-      mountSubRoot(tasker, null, root, null, subRoot);
-      break;
-    }
-    case 'COMPONENT_STATEFUL': {
-      const componentProps = root.props;
-      const inst = (root._inst = new root.tag());
-      inst._node = root;
-      inst.props = componentProps;
-
-      const subRoot = inst.render();
-
-      mountSubRoot(tasker, null, root, null, subRoot);
-      break;
-    }
-    default:
-      break;
-  }
+  mountNode(tasker, host, root, null);
 }
 
 function unmountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRoot) {
@@ -372,31 +354,7 @@ function unmountSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterSubRo
   const root = beforeSubRoot,
     host = beforeHost;
 
-  switch (root.type) {
-    case 'ELEMENT': {
-      // recursively remove all of its children
-      vdomRemove(tasker, host, null, 0);
-      break;
-    }
-    case 'TEXT': {
-      vdomRemove(tasker, host, null, 0);
-      break;
-    }
-    case 'FRAGMENT': {
-      unmountChildren(tasker, root);
-      break;
-    }
-    case 'COMPONENT_FUNCTIONAL': {
-      unmountSubRoot(tasker, root, null, root._subRoot, null);
-      break;
-    }
-    case 'COMPONENT_STATEFUL': {
-      unmountSubRoot(tasker, root, null, root._subRoot, null);
-      break;
-    }
-    default:
-      break;
-  }
+  unmountNode(tasker, host, root);
 
   // finally remove the sub-root link
   if (afterHost) afterHost._subRoot = null;
@@ -427,6 +385,7 @@ function isNodeDiffable(a, b) {
   if (a.key !== b.key) return false;
   if (a.type === 'ELEMENT' && a.tag !== b.tag) return false;
   if (a.type === 'COMPONENT_FUNCTIONAL' && a.tag !== b.tag) return false;
+  if (a.type === 'COMPONENT_STATEFUL' && a.tag !== b.tag) return false;
   return true;
 }
 

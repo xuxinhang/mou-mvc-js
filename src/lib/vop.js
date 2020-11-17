@@ -98,6 +98,82 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
   }
 }
 
+export function insertEntity(tasker, upper, self, ref, beforeIndex) {
+  const parentNode = upper,
+    movedVNode = self;
+  const isInserted = beforeIndex < 0;
+
+  let redirectedParentNode = parentNode;
+  let redirectedTailRefNode = null;
+
+  // set the redirect target for vnodes with a fragment parent
+  // it's the key about how the fragment works!
+  const isFragmentParentNode = parentNode.type === 'FRAGMENT';
+  const isFunctionalComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
+  const isStatefulComponentParentNode = parentNode.type === 'COMPONENT_STATEFUL';
+  if (isFragmentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+    redirectedTailRefNode = getTailRefEntityNode(parentNode);
+  } else if (isFunctionalComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+    redirectedTailRefNode = getTailRefEntityNode(parentNode);
+  } else if (isStatefulComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+    redirectedTailRefNode = getTailRefEntityNode(parentNode);
+  }
+
+  switch (movedVNode.type) {
+    case 'ELEMENT':
+    case 'TEXT': {
+      const selfNode = movedVNode;
+      const refNode = ref === null ? redirectedTailRefNode : getHeadEntityNode(ref);
+
+      tasker.enqueue({
+        type: isInserted ? 'mountNode' : 'moveNode',
+        selfNode,
+        parentNode: redirectedParentNode,
+        refNode,
+      });
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+export function removeEntity(tasker, upper, self) {
+  const node = self,
+    parentNode = upper;
+
+  let redirectedParentNode = parentNode;
+
+  const isFragmentParentNode = parentNode.type === 'FRAGMENT';
+  const isFunctionalComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
+  const isStatefulComponentParentNode = parentNode.type === 'COMPONENT_STATEFUL';
+  if (isFragmentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+  } else if (isFunctionalComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+  } else if (isStatefulComponentParentNode) {
+    redirectedParentNode = getNearestAncestorEntityNode(parentNode);
+  }
+
+  switch (node.type) {
+    case 'ELEMENT':
+    case 'TEXT': {
+      console.assert(node._el);
+      tasker.enqueue({
+        type: 'removeNode',
+        selfNode: node,
+        parentNode: redirectedParentNode,
+      });
+      break;
+    }
+    default:
+      break;
+  }
+}
+
 function getTailRefEntityNode(node) {
   let current = node;
 

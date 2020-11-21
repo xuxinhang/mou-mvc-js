@@ -114,7 +114,7 @@ class ProductPlus extends Component {
         <picture>
           <img srcSet={this.props.icon} />
         </picture>
-        <span>{this.props.name}</span>
+        <span className="prod-name">{this.props.name}</span>
       </li>
     );
   }

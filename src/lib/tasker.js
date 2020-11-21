@@ -1,3 +1,5 @@
+import { isNullOrUndef } from './toolkit';
+
 /**
  * DOM Operation Tasker Manager Module
  */
@@ -57,7 +59,34 @@ function applyDOMOperationTask(task) {
       const { selfNode } = task;
       const el = selfNode._el;
       console.assert(el && el.nodeType === el.TEXT_NODE);
-      updateTextContent(selfNode, el);
+      el.textContent = selfNode.text;
+      break;
+    }
+    case 'setAttr': {
+      const name = task.name,
+        value = task.value,
+        el = task.node._el;
+      console.assert(el && el.nodeType === el.ELEMENT_NODE);
+      if (isNullOrUndef(value)) {
+        el.removeAttribute(name);
+      } else {
+        el.setAttribute(name, String(value));
+      }
+      break;
+    }
+    case 'setProp': {
+      const name = task.name,
+        value = task.value,
+        el = task.node._el;
+      console.assert(el && el.nodeType === el.ELEMENT_NODE);
+      if (isNullOrUndef(value)) {
+        el[name] = null;
+      } else {
+        if (el[name] !== value) el[name] = value;
+      }
+      break;
+    }
+    case 'attachEvent': {
       break;
     }
     default: {
@@ -71,10 +100,6 @@ function mountNode(vnode, parentNode, refNode = null) {
     case 'ELEMENT':
       vnode._el = document.createElement(vnode.tag);
       parentNode.insertBefore(vnode._el, refNode);
-      // TEMP: append DOM attributes to the inserted element
-      if (vnode.attrs?.srcset !== undefined) {
-        vnode._el.setAttribute('srcset', vnode.attrs.srcset);
-      }
       break;
     case 'TEXT':
       vnode._el = document.createTextNode(vnode.text);
@@ -93,10 +118,6 @@ function moveNode(vnode, selfNode, parentNode, refNode = null) {
 function removeNode(vnode, selfNode, parentNode) {
   console.assert(vnode._el === selfNode);
   parentNode.removeChild(selfNode);
-}
-
-function updateTextContent(vnode, selfNode) {
-  selfNode.textContent = vnode.text;
 }
 
 /* The initial experiment for diff algorithm

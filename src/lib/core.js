@@ -1,6 +1,7 @@
+import classnames from 'classnames';
 import { applyTasker, createDOMOperationTasker } from './tasker';
 import { removeEntity, insertEntity } from './vop';
-import { generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
+import { generateUID, getChildOrSubRootOrMountingNode, isNullOrUndef } from './toolkit';
 
 export function mount(vnode, elem) {
   // clear the original element contains
@@ -58,6 +59,15 @@ function mountNode(tasker, upper /* parent or host */, node, ref) {
   switch (node.type) {
     case 'ELEMENT': {
       insertEntity(tasker, upper, node, ref, -1);
+
+      if (!isNullOrUndef(node.class) && node.class !== '') {
+        tasker.enqueue({ type: 'setProp', node, name: 'className', value: classnames(node.class) });
+      }
+
+      for (const name in node.attrs) {
+        tasker.enqueue({ type: 'setAttr', node, name, value: node.attrs[name] });
+      }
+
       mountChildren(tasker, null, node);
       break;
     }

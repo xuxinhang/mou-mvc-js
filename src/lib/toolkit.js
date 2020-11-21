@@ -47,3 +47,5 @@ export function getChildOrSubRootOrMountingNode(index, node, mountingSet) {
     }
   }
 }
+
+export const isNullOrUndef = x => x === undefined || x === null;

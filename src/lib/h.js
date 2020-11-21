@@ -20,20 +20,29 @@ export default function createElement(tag, data = {}, ...children) {
       children: normalizeChildren(children),
     });
   } else if (typeof tag === 'string') {
+    const events = {},
+      attrs = {},
+      domProps = {};
+
+    for (const key in data) {
+      if (key === 'class' || key === 'className' || key === 'style') continue;
+      if (key.startsWith('on-')) {
+        events[key.substr(3).toLowerCase()] = data[key];
+      } else {
+        attrs[key.toLowerCase()] = data[key];
+      }
+    }
+
     Object.assign(base, {
       type: 'ELEMENT',
       tag,
-      class: data.class ?? undefined,
+      class: data.class ?? data.className ?? undefined,
       style: data.style ?? undefined,
-      attrs: {},
-      domProps: {},
-      on: {},
+      attrs,
+      domProps,
+      on: events,
       children: normalizeChildren(children),
     });
-    // TEMP: add dom attrs.
-    if (data.srcSet !== undefined) {
-      base.attrs.srcset = data.srcSet;
-    }
   } else if (typeof tag === 'function') {
     if (tag.prototype && tag.prototype.render) {
       const { ...props } = data;

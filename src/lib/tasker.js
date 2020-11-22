@@ -99,7 +99,12 @@ function applyDOMOperationTask(task) {
       task.node._el.style.cssText = task.value;
       break;
     }
-    case 'attachEvent': {
+    case 'addEventListener': {
+      task.node._el.addEventListener(task.name, task.listener, task.options);
+      break;
+    }
+    case 'removeEventListener': {
+      task.node._el.removeEventListener(task.name, task.listener, task.options);
       break;
     }
     default: {

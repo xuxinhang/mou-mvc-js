@@ -20,15 +20,20 @@ export default function createElement(tag, data = {}, ...children) {
       children: normalizeChildren(children),
     });
   } else if (typeof tag === 'string') {
-    const events = {},
-      attrs = {},
-      domProps = {};
+    let events = undefined,
+      attrs = undefined,
+      domProps = undefined;
 
     for (const key in data) {
       if (key === 'class' || key === 'className' || key === 'style') continue;
       if (key.startsWith('on-')) {
+        events = events ?? {};
         events[key.substr(3).toLowerCase()] = data[key];
+      } else if (key.startsWith('on')) {
+        events = events ?? {};
+        events[key.substr(2).toLowerCase()] = data[key];
       } else {
+        attrs = attrs ?? {};
         attrs[key.toLowerCase()] = data[key];
       }
     }
@@ -40,7 +45,7 @@ export default function createElement(tag, data = {}, ...children) {
       style: data.style ?? undefined,
       attrs,
       domProps,
-      on: events,
+      events,
       children: normalizeChildren(children),
     });
   } else if (typeof tag === 'function') {

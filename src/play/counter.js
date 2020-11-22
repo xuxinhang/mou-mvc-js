@@ -6,18 +6,30 @@ class Counter extends Component {
     super();
     this.state = {
       number: 0,
+      delta: 1,
     };
 
+    this.onAccelerateBtnClicked = this.onAccelerateBtnClicked.bind(this);
+
     setInterval(() => {
-      this.setState({ number: this.state.number + 1 });
+      this.setState({ number: this.state.number + this.state.delta });
     }, 1000);
+  }
+
+  onAccelerateBtnClicked() {
+    this.setState({ delta: 2 });
   }
 
   render() {
     return (
-      <span className="counter-number" style={{ 'font-weight': this.state.number % 10 ? 'normal' : 'bold' }}>
-        {this.state.number}
-      </span>
+      <div className="counter-wrap">
+        <code className="counter-number" style={{ 'font-weight': this.state.number % 10 ? 'normal' : 'bold' }}>
+          {this.state.number}
+        </code>
+        <button className="counter-accelerate-btn" onClick={this.onAccelerateBtnClicked}>
+          <i>⚡</i>
+        </button>
+      </div>
     );
   }
 }
@@ -26,9 +38,7 @@ function App() {
   return (
     <Mou.Fragment>
       <code>Current Number = </code>
-      <code>
-        <Counter />
-      </code>
+      <Counter />
     </Mou.Fragment>
   );
 }

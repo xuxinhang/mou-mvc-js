@@ -27,10 +27,18 @@ function _setStyleCssText(tasker, node, value) {
   tasker.enqueue({ type: 'setStyleCssText', node, value });
 }
 
+function _addEventListener(tasker, node, name, listener, options) {
+  tasker.enqueue({ type: 'addEventListener', node, name, listener, options });
+}
+
+function _removeEventListener(tasker, node, name, listener, options) {
+  tasker.enqueue({ type: 'removeEventListener', node, name, listener, options });
+}
+
 /* Patch style, class, DOM props, DOM attributes, etc. */
 
 export function patchStyle(tasker, node, beforeStyle, afterStyle) {
-  console.assert((node._el && beforeStyle) || (!node._el && !beforeStyle));
+  console.assert(node._el || (!node._el && !beforeStyle));
 
   if (isNullOrUndef(afterStyle)) {
     if (!isNullOrUndef(beforeStyle)) _removeAttribute(tasker, node, 'style');
@@ -67,5 +75,40 @@ export function patchClassName(tasker, node, beforeClass, afterClass) {
   // TODO use Element#classList for diffing
   if (!isNullOrUndef(afterClass) && afterClass !== '') {
     _setDOMProp(tasker, node, 'className', classnames(afterClass));
+  }
+}
+
+export function patchEventList(tasker, node, beforeEventList, afterEventList) {
+  const isBeforeEventListNullOrUndef = isNullOrUndef(beforeEventList);
+  const isAfterEventListNullOrUndef = isNullOrUndef(afterEventList);
+  if (isBeforeEventListNullOrUndef && isAfterEventListNullOrUndef) return;
+
+  const getEventOption = h => (typeof h === 'function' ? false : h);
+  let n, bh, ah;
+
+  if (isBeforeEventListNullOrUndef) {
+    for (n in afterEventList) {
+      ah = afterEventList[n];
+      _addEventListener(tasker, node, n, ah, getEventOption(ah));
+    }
+  } else if (isAfterEventListNullOrUndef) {
+    for (n in beforeEventList) {
+      bh = beforeEventList[n];
+      _removeEventListener(tasker, node, n, bh, getEventOption(bh));
+    }
+  } else {
+    for (n in beforeEventList) {
+      bh = beforeEventList[n];
+      ah = afterEventList[n];
+      if (bh !== ah) {
+        if (bh) _removeEventListener(tasker, node, n, bh, getEventOption(bh));
+        if (ah) _addEventListener(tasker, node, n, ah, getEventOption(ah));
+      }
+    }
+    for (n in afterEventList) {
+      bh = beforeEventList[n];
+      ah = afterEventList[n];
+      if (!bh) _addEventListener(tasker, node, n, ah, getEventOption(ah));
+    }
   }
 }

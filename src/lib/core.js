@@ -1,7 +1,7 @@
 import { applyTasker, createDOMOperationTasker } from './tasker';
 import { removeEntity, insertEntity } from './vop';
 import { generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
-import { patchClassName, patchStyle } from './element';
+import { patchClassName, patchEventList, patchStyle } from './element';
 
 export function mount(vnode, elem) {
   // clear the original element contains
@@ -62,6 +62,7 @@ function mountNode(tasker, upper /* parent or host */, node, ref) {
 
       patchClassName(tasker, node, null, node.class);
       patchStyle(tasker, node, null, node.style);
+      patchEventList(tasker, node, null, node.events);
 
       for (const name in node.attrs) {
         tasker.enqueue({ type: 'setAttr', node, name, value: node.attrs[name] });
@@ -235,13 +236,13 @@ function diffNode(tasker, beforeNode, afterNode) {
       // diff on its attrs and dom props, etc.
       patchClassName(tasker, afterNode, beforeNode.class, afterNode.class);
       patchStyle(tasker, afterNode, beforeNode.style, afterNode.style);
+      patchEventList(tasker, afterNode, beforeNode.events, afterNode.events);
       // diff its children nodes
       diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
       break;
     }
     case 'TEXT': {
-      console.assert(beforeNode._el);
-      console.assert(beforeNode._el.textContent === beforeNode.text);
+      console.assert(beforeNode._el && beforeNode._el.textContent === beforeNode.text);
       afterNode._el = beforeNode._el;
 
       // diff its text content in dom

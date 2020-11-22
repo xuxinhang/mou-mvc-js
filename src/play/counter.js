@@ -14,7 +14,11 @@ class Counter extends Component {
   }
 
   render() {
-    return <mark>{this.state.number}</mark>;
+    return (
+      <span className="counter-number" style={{ 'font-weight': this.state.number % 10 ? 'normal' : 'bold' }}>
+        {this.state.number}
+      </span>
+    );
   }
 }
 

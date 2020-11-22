@@ -67,11 +67,11 @@ function applyDOMOperationTask(task) {
         value = task.value,
         el = task.node._el;
       console.assert(el && el.nodeType === el.ELEMENT_NODE);
-      if (isNullOrUndef(value)) {
-        el.removeAttribute(name);
-      } else {
-        el.setAttribute(name, String(value));
-      }
+      el.setAttribute(name, String(value));
+      break;
+    }
+    case 'removeAttr': {
+      task.node._el.removeAttribute(task.name);
       break;
     }
     case 'setProp': {
@@ -84,6 +84,19 @@ function applyDOMOperationTask(task) {
       } else {
         if (el[name] !== value) el[name] = value;
       }
+      break;
+    }
+    case 'setStyleProperty': {
+      const el = task.node._el;
+      el.style.setProperty(task.name, task.value); // TODO priority
+      break;
+    }
+    case 'removeStyleProperty': {
+      task.node._el.style.removeProperty(task.name);
+      break;
+    }
+    case 'setStyleCssText': {
+      task.node._el.style.cssText = task.value;
       break;
     }
     case 'attachEvent': {

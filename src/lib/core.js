@@ -1,7 +1,7 @@
-import classnames from 'classnames';
 import { applyTasker, createDOMOperationTasker } from './tasker';
 import { removeEntity, insertEntity } from './vop';
-import { generateUID, getChildOrSubRootOrMountingNode, isNullOrUndef } from './toolkit';
+import { generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
+import { patchClassName, patchStyle } from './element';
 
 export function mount(vnode, elem) {
   // clear the original element contains
@@ -60,9 +60,8 @@ function mountNode(tasker, upper /* parent or host */, node, ref) {
     case 'ELEMENT': {
       insertEntity(tasker, upper, node, ref, -1);
 
-      if (!isNullOrUndef(node.class) && node.class !== '') {
-        tasker.enqueue({ type: 'setProp', node, name: 'className', value: classnames(node.class) });
-      }
+      patchClassName(tasker, node, null, node.class);
+      patchStyle(tasker, node, null, node.style);
 
       for (const name in node.attrs) {
         tasker.enqueue({ type: 'setAttr', node, name, value: node.attrs[name] });
@@ -182,6 +181,7 @@ function unmountNode(tasker, upper /* parent or host */, node) {
   switch (node.type) {
     case 'ELEMENT': {
       // just simply delete this element and all of its children will go
+      // no need to remove props or attrs
       removeEntity(tasker, upper, node);
       break;
     }
@@ -232,7 +232,9 @@ function diffNode(tasker, beforeNode, afterNode) {
     case 'ELEMENT': {
       console.assert(beforeNode.tag === afterNode.tag);
       afterNode._el = beforeNode._el;
-      // FUTURE: diff on its attrs and dom props, etc.
+      // diff on its attrs and dom props, etc.
+      patchClassName(tasker, afterNode, beforeNode.class, afterNode.class);
+      patchStyle(tasker, afterNode, beforeNode.style, afterNode.style);
       // diff its children nodes
       diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
       break;

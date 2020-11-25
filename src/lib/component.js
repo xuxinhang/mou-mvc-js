@@ -24,6 +24,7 @@ class RenderQueue {
   }
 
   applyRequestQueue() {
+    // FUTURE: use a mark to prevent updating a sub-component repeatly.
     this.isScheduled = false;
     const tasker = createDOMOperationTasker();
     let request;

@@ -17,7 +17,8 @@ class Counter extends Component {
   }
 
   onAccelerateBtnClicked() {
-    this.setState({ delta: 2 });
+    const m = [0, 2, 1];
+    this.setState({ delta: m[this.state.delta] });
   }
 
   render() {

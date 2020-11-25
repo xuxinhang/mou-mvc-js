@@ -72,7 +72,7 @@ export function patchStyle(tasker, node, beforeStyle, afterStyle) {
 }
 
 export function patchClassName(tasker, node, beforeClass, afterClass) {
-  // TODO use Element#classList for diffing
+  // TODO consider Element#classList for diffing
   if (!isNullOrUndef(afterClass) && afterClass !== '') {
     _setDOMProp(tasker, node, 'className', classnames(afterClass));
   }
@@ -85,6 +85,13 @@ export function patchEventList(tasker, node, beforeEventList, afterEventList) {
 
   const getEventOption = h => (typeof h === 'function' ? false : h);
   let n, bh, ah;
+
+  /**
+   * Each item of an EventList is either a handler function or an object
+   * implementing both the EventListener interface and the option list
+   * accepted by addEventListener or removeEventListener. For example:
+   *   { handleEvent: Function, capture: false, once: false, passive: false }
+   */
 
   if (isBeforeEventListNullOrUndef) {
     for (n in afterEventList) {

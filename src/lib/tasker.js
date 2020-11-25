@@ -1,4 +1,4 @@
-import { isNullOrUndef } from './toolkit';
+import { generateUID, isNullOrUndef } from './toolkit';
 
 /**
  * DOM Operation Tasker Manager Module
@@ -22,6 +22,7 @@ export function createDOMOperationTasker() {
 class DOMOperationTasker {
   constructor() {
     this.queue = [];
+    this.tasker_sn = generateUID(); // identify each tasker
   }
   enqueue(task) {
     this.queue.push(task);
@@ -88,7 +89,8 @@ function applyDOMOperationTask(task) {
     }
     case 'setStyleProperty': {
       const el = task.node._el;
-      el.style.setProperty(task.name, task.value); // TODO priority
+      el.style.setProperty(task.name, task.value);
+      // TODO the third parameter - priority
       break;
     }
     case 'removeStyleProperty': {

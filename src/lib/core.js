@@ -128,10 +128,11 @@ function unmountChildren(tasker, beforeParent) {
   }
 }
 
-function moveChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
+function reorderChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, afterIndex, afterNextBeforeIndex) {
   console.assert(beforeIndex >= 0);
   const beforeNode = getChildOrSubRootOrMountingNode(beforeIndex, beforeParent);
   const afterNode = getChildOrSubRootOrMountingNode(afterIndex, afterParent, null);
+  console.assert(beforeNode.type === afterNode.type);
   afterNode._parent = afterParent;
 
   switch (beforeNode.type) {
@@ -145,24 +146,19 @@ function moveChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex, 
       break;
     }
     case 'FRAGMENT': {
-      console.assert(beforeNode.type === 'FRAGMENT' && afterNode.type === 'FRAGMENT');
-
       for (let i = beforeNode.children.length - 1, lastIndex = null; i >= 0; lastIndex = i--) {
         // insert each child of this fragment one by one
-        moveChild(tasker, beforeNode, [], afterNode, i, i, lastIndex);
+        reorderChild(tasker, beforeNode, [], afterNode, i, i, lastIndex);
       }
       break;
     }
     case 'COMPONENT_FUNCTIONAL': {
-      console.assert(beforeNode.type === 'COMPONENT_FUNCTIONAL' && afterNode.type === 'COMPONENT_FUNCTIONAL');
-      // TODO to call vdomInsert, instead of moveChild
-      moveChild(tasker, beforeNode, [], afterNode, 0, 0, null);
+      // TODO to call vdomInsert, instead of reorderChild
+      reorderChild(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
     }
     case 'COMPONENT_STATEFUL': {
-      console.assert(beforeNode.type === 'COMPONENT_STATEFUL' && afterNode.type === 'COMPONENT_STATEFUL');
-      // TODO to call vdomInsert, instead of moveChild
-      moveChild(tasker, beforeNode, [], afterNode, 0, 0, null);
+      reorderChild(tasker, beforeNode, [], afterNode, 0, 0, null);
       break;
     }
     default:
@@ -343,7 +339,7 @@ function diffChildren(tasker, prevParent, parent, beforeNodes, afterNodes) {
     if (r.beforeIndex < 0) {
       mountChild(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     } else {
-      moveChild(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
+      reorderChild(tasker, prevParent, mountingSet, parent, r.beforeIndex, r.afterIndex, r.afterNextBeforeIndex);
     }
   }
 }

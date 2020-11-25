@@ -40,7 +40,6 @@ export function getChildOrSubRootOrMountingNode(index, node, mountingSet) {
       } else {
         return node.children[index];
       }
-      // break;
     }
     default: {
       throw new Error('this node has neither child nor sub-root.');

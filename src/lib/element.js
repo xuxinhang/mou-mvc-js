@@ -119,3 +119,30 @@ export function patchEventList(tasker, node, beforeEventList, afterEventList) {
     }
   }
 }
+
+export function patchDOMProps(tasker, node, beforeProps, afterProps) {
+  if (!beforeProps && !afterProps) return;
+  let k;
+
+  if (!beforeProps) {
+    for (k in afterProps) _setDOMProp(tasker, node, k, afterProps[k] ?? '');
+    return;
+  }
+
+  if (!afterProps) {
+    for (k in beforeProps) _setDOMProp(tasker, node, k, '');
+    return;
+  }
+
+  // if (afterProps && beforeProps)
+  for (k in beforeProps) {
+    const beforeValue = beforeProps[k];
+    const afterValue = afterProps[k];
+    if (!isNullOrUndef(beforeValue) && isNullOrUndef(afterValue)) _setDOMProp(tasker, node, k, '');
+  }
+  for (k in afterProps) {
+    const beforeValue = beforeProps[k];
+    const afterValue = afterProps[k];
+    if (beforeValue !== afterValue) _setDOMProp(tasker, node, k, afterValue ?? '');
+  }
+}

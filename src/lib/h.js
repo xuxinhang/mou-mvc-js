@@ -1,6 +1,31 @@
 export const Fragment = Symbol('Fragment');
 export const Protal = Symbol('Protal');
 
+const DOM_PROP_LIST = [
+  'allowfullscreen',
+  'autoplay',
+  'capture',
+  'checked',
+  'controls',
+  'default',
+  'disabled',
+  'hidden',
+  'indeterminate',
+  'loop',
+  'muted',
+  'novalidate',
+  'open',
+  'readOnly',
+  'required',
+  'reversed',
+  'scoped',
+  'seamless',
+  'selected',
+  'defaultChecked',
+  'value',
+  'volume',
+];
+
 export default function createElement(tag, data = {}, ...children) {
   // pre-process input parameters
   children = children.flat();
@@ -32,6 +57,9 @@ export default function createElement(tag, data = {}, ...children) {
       } else if (key.startsWith('on')) {
         events = events ?? {};
         events[key.substr(2).toLowerCase()] = data[key];
+      } else if (DOM_PROP_LIST.indexOf(key) !== -1) {
+        domProps = domProps ?? {};
+        domProps[key] = data[key];
       } else {
         attrs = attrs ?? {};
         attrs[key.toLowerCase()] = data[key];

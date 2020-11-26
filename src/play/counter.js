@@ -27,6 +27,8 @@ class Counter extends Component {
         <code className="counter-number" style={{ 'font-weight': this.state.number % 10 ? 'normal' : 'bold' }}>
           {this.state.number}
         </code>
+        <input value={`${this.state.number}`} />
+        <input type="range" value={this.state.number % 100} max="100" min="0" />
         <button className="counter-accelerate-btn" onClick={this.onAccelerateBtnClicked}>
           <i>⚡</i>
         </button>

@@ -1,7 +1,7 @@
 import { applyTasker, createDOMOperationTasker } from './tasker';
 import { removeEntity, insertEntity } from './vop';
 import { generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
-import { patchClassName, patchEventList, patchStyle } from './element';
+import { patchClassName, patchDOMProps, patchEventList, patchStyle } from './element';
 
 export function mount(vnode, elem) {
   // clear the original element contains
@@ -62,6 +62,7 @@ function mountNode(tasker, upper /* parent or host */, node, ref) {
 
       patchClassName(tasker, node, null, node.class);
       patchStyle(tasker, node, null, node.style);
+      patchDOMProps(tasker, node, null, node.domProps);
       patchEventList(tasker, node, null, node.events);
 
       for (const name in node.attrs) {
@@ -232,6 +233,7 @@ function diffNode(tasker, beforeNode, afterNode) {
       // diff on its attrs and dom props, etc.
       patchClassName(tasker, afterNode, beforeNode.class, afterNode.class);
       patchStyle(tasker, afterNode, beforeNode.style, afterNode.style);
+      patchDOMProps(tasker, afterNode, beforeNode.domProps, afterNode.domProps);
       patchEventList(tasker, afterNode, beforeNode.events, afterNode.events);
       // diff its children nodes
       diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);

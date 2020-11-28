@@ -40,6 +40,8 @@ function _removeEventListener(tasker, node, name, listener, options) {
 export function patchStyle(tasker, node, beforeStyle, afterStyle) {
   console.assert(node._el || (!node._el && !beforeStyle));
 
+  if (beforeStyle === afterStyle) return;
+
   if (isNullOrUndef(afterStyle)) {
     if (!isNullOrUndef(beforeStyle)) _removeAttribute(tasker, node, 'style');
     return;
@@ -72,13 +74,13 @@ export function patchStyle(tasker, node, beforeStyle, afterStyle) {
 }
 
 export function patchClassName(tasker, node, beforeClass, afterClass) {
+  if (beforeClass === afterClass) return;
   // TODO consider Element#classList for diffing
-  if (!isNullOrUndef(afterClass) && afterClass !== '') {
-    _setDOMProp(tasker, node, 'className', classnames(afterClass));
-  }
+  _setDOMProp(tasker, node, 'className', classnames(afterClass));
 }
 
 export function patchEventList(tasker, node, beforeEventList, afterEventList) {
+  if (beforeEventList === afterEventList) return;
   const isBeforeEventListNullOrUndef = isNullOrUndef(beforeEventList);
   const isAfterEventListNullOrUndef = isNullOrUndef(afterEventList);
   if (isBeforeEventListNullOrUndef && isAfterEventListNullOrUndef) return;
@@ -88,9 +90,9 @@ export function patchEventList(tasker, node, beforeEventList, afterEventList) {
 
   /**
    * Each item of an EventList is either a handler function or an object
-   * implementing both the EventListener interface and the option list
+   * implementing both the EventListener interface and the option object
    * accepted by addEventListener or removeEventListener. For example:
-   *   { handleEvent: Function, capture: false, once: false, passive: false }
+   *     { handleEvent: Function, capture: false, once: false, passive: false }
    */
 
   if (isBeforeEventListNullOrUndef) {
@@ -121,6 +123,7 @@ export function patchEventList(tasker, node, beforeEventList, afterEventList) {
 }
 
 export function patchDOMProps(tasker, node, beforeProps, afterProps) {
+  if (beforeProps === afterProps) return;
   if (!beforeProps && !afterProps) return;
   let k;
 
@@ -144,5 +147,29 @@ export function patchDOMProps(tasker, node, beforeProps, afterProps) {
     const beforeValue = beforeProps[k];
     const afterValue = afterProps[k];
     if (beforeValue !== afterValue) _setDOMProp(tasker, node, k, afterValue ?? '');
+  }
+}
+
+export function patchAttrs(tasker, node, beforeAttrs, afterAttrs) {
+  if (beforeAttrs === afterAttrs) return;
+  if (!beforeAttrs && !afterAttrs) return;
+  let k, v;
+
+  if (!beforeAttrs) {
+    for (k in afterAttrs) (v = afterAttrs[k]) != null && _setAttribute(tasker, node, k, v);
+    return;
+  }
+
+  if (!afterAttrs) {
+    for (k in beforeAttrs) beforeAttrs[k] != null && _removeAttribute(tasker, node, k);
+    return;
+  }
+
+  // diff the before and after attrs
+  for (k in beforeAttrs) {
+    if (beforeAttrs[k] != null && afterAttrs[k] == null) _removeAttribute(tasker, node, k);
+  }
+  for (k in afterAttrs) {
+    if (beforeAttrs[k] !== (v = afterAttrs[k])) _setDOMProp(tasker, node, k, v);
   }
 }

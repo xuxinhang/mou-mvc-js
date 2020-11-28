@@ -1,7 +1,7 @@
 import { applyTasker, createDOMOperationTasker } from './tasker';
 import { removeEntity, insertEntity } from './vop';
 import { generateUID, getChildOrSubRootOrMountingNode } from './toolkit';
-import { patchClassName, patchDOMProps, patchEventList, patchStyle } from './element';
+import { patchAttrs, patchClassName, patchDOMProps, patchEventList, patchStyle } from './element';
 
 export function mount(vnode, elem) {
   // clear the original element contains
@@ -58,17 +58,11 @@ function mountChild(tasker, beforeParent, mountingSet, afterParent, beforeIndex,
 function mountNode(tasker, upper /* parent or host */, node, ref) {
   switch (node.type) {
     case 'ELEMENT': {
+      // insert itself as an element entity node
       insertEntity(tasker, upper, node, ref, -1);
-
-      patchClassName(tasker, node, null, node.class);
-      patchStyle(tasker, node, null, node.style);
-      patchDOMProps(tasker, node, null, node.domProps);
-      patchEventList(tasker, node, null, node.events);
-
-      for (const name in node.attrs) {
-        tasker.enqueue({ type: 'setAttr', node, name, value: node.attrs[name] });
-      }
-
+      // add its own props, attrs, events, etc.
+      patchElementNodeProps(tasker, null, node);
+      // mount its children recursively
       mountChildren(tasker, null, node);
       break;
     }
@@ -231,10 +225,7 @@ function diffNode(tasker, beforeNode, afterNode) {
       console.assert(beforeNode.tag === afterNode.tag);
       afterNode._el = beforeNode._el;
       // diff on its attrs and dom props, etc.
-      patchClassName(tasker, afterNode, beforeNode.class, afterNode.class);
-      patchStyle(tasker, afterNode, beforeNode.style, afterNode.style);
-      patchDOMProps(tasker, afterNode, beforeNode.domProps, afterNode.domProps);
-      patchEventList(tasker, afterNode, beforeNode.events, afterNode.events);
+      patchElementNodeProps(tasker, beforeNode, afterNode);
       // diff its children nodes
       diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
       break;
@@ -390,6 +381,16 @@ export function diffSubRoot(tasker, beforeHost, afterHost, beforeSubRoot, afterS
 }
 
 /* Utils */
+
+function patchElementNodeProps(tasker, beforeNode = null, afterNode = null) {
+  console.assert(afterNode);
+
+  patchClassName(tasker, afterNode, beforeNode?.class, afterNode?.class);
+  patchStyle(tasker, afterNode, beforeNode?.style, afterNode?.style);
+  patchDOMProps(tasker, afterNode, beforeNode?.domProps, afterNode?.domProps);
+  patchEventList(tasker, afterNode, beforeNode?.events, afterNode?.events);
+  patchAttrs(tasker, afterNode, beforeNode?.attrs, afterNode?.attrs);
+}
 
 function isNodeDiffable(a, b) {
   if (a.type !== b.type) return false;

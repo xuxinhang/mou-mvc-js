@@ -90,7 +90,6 @@ function applyDOMOperationTask(task) {
     case 'setStyleProperty': {
       const el = task.node._el;
       el.style.setProperty(task.name, task.value);
-      // TODO the third parameter - priority
       break;
     }
     case 'removeStyleProperty': {

@@ -33,7 +33,8 @@ export function getChildOrSubRootOrMountingNode(index, node, mountingSet) {
       return node._subRoot;
     }
     case 'ELEMENT':
-    case 'FRAGMENT': {
+    case 'FRAGMENT':
+    case 'PORTAL': {
       if (index < 0) {
         if (!Array.isArray(mountingSet)) throw new TypeError('missing mountingSet');
         return mountingSet[~index];
@@ -42,7 +43,7 @@ export function getChildOrSubRootOrMountingNode(index, node, mountingSet) {
       }
     }
     default: {
-      throw new Error('this node has neither child nor sub-root.');
+      throw new Error('unexpected node type');
     }
   }
 }

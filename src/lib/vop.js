@@ -99,15 +99,17 @@ export function vdomRemove(tasker, beforeParent, afterParent, beforeIndex) {
 }
 
 export function insertEntity(tasker, upper, self, ref, beforeIndex) {
-  const parentNode = upper,
-    movedVNode = self;
+  console.assert(self.type === 'ELEMENT' || self.type === 'TEXT');
+  const parentNode = upper;
+  const selfNode = self;
   const isInserted = beforeIndex < 0;
 
+  // redirect the parent or tail-ref node to get the actually node
   let redirectedParentNode = parentNode;
   let redirectedTailRefNode = null;
 
   // set the redirect target for vnodes with a fragment parent
-  // it's the key about how the fragment works!
+  // it's the key to how the fragment works!
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
   const isFunctionalComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
   const isStatefulComponentParentNode = parentNode.type === 'COMPONENT_STATEFUL';
@@ -122,31 +124,29 @@ export function insertEntity(tasker, upper, self, ref, beforeIndex) {
     redirectedTailRefNode = getTailRefEntityNode(parentNode);
   }
 
-  switch (movedVNode.type) {
-    case 'ELEMENT':
-    case 'TEXT': {
-      const selfNode = movedVNode;
-      const refNode = ref === null ? redirectedTailRefNode : getHeadEntityNode(ref);
+  // map to the actually ref node according to the given ref node
+  let refNode = ref;
+  while (refNode !== null && refNode.type === 'PORTAL') refNode = refNode._nextSibling;
+  refNode = refNode === null ? redirectedTailRefNode : getHeadEntityNode(refNode);
 
-      tasker.enqueue({
-        type: isInserted ? 'mountNode' : 'moveNode',
-        selfNode,
-        parentNode: redirectedParentNode,
-        refNode,
-      });
-      break;
-    }
-    default:
-      break;
-  }
+  tasker.enqueue({
+    type: isInserted ? 'mountNode' : 'moveNode',
+    selfNode,
+    parentNode: redirectedParentNode,
+    refNode,
+  });
 }
 
 export function removeEntity(tasker, upper, self) {
-  const node = self,
-    parentNode = upper;
+  console.assert(self.type === 'ELEMENT' || self.type === 'TEXT');
+  const selfNode = self;
+  const parentNode = upper;
 
+  // redirect the parent node to get the actually node
   let redirectedParentNode = parentNode;
 
+  // set the redirect target for vnodes with a fragment parent
+  // it's the key to how the fragment works!
   const isFragmentParentNode = parentNode.type === 'FRAGMENT';
   const isFunctionalComponentParentNode = parentNode.type === 'COMPONENT_FUNCTIONAL';
   const isStatefulComponentParentNode = parentNode.type === 'COMPONENT_STATEFUL';
@@ -158,20 +158,12 @@ export function removeEntity(tasker, upper, self) {
     redirectedParentNode = getNearestAncestorEntityNode(parentNode);
   }
 
-  switch (node.type) {
-    case 'ELEMENT':
-    case 'TEXT': {
-      console.assert(node._el);
-      tasker.enqueue({
-        type: 'removeNode',
-        selfNode: node,
-        parentNode: redirectedParentNode,
-      });
-      break;
-    }
-    default:
-      break;
-  }
+  console.assert(selfNode._el);
+  tasker.enqueue({
+    type: 'removeNode',
+    selfNode,
+    parentNode: redirectedParentNode,
+  });
 }
 
 function getTailRefEntityNode(node) {

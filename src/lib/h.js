@@ -1,5 +1,5 @@
 export const Fragment = Symbol('Fragment');
-export const Protal = Symbol('Protal');
+export const Portal = Symbol('Portal');
 
 const DOM_PROP_LIST = [
   'allowfullscreen',
@@ -42,6 +42,13 @@ export default function createElement(tag, data = {}, ...children) {
     Object.assign(base, {
       type: 'FRAGMENT',
       tag: Fragment,
+      children: normalizeChildren(children),
+    });
+  } else if (tag === Portal) {
+    Object.assign(base, {
+      type: 'PORTAL',
+      tag: Portal,
+      portalTarget: data.to,
       children: normalizeChildren(children),
     });
   } else if (typeof tag === 'string') {
@@ -102,21 +109,25 @@ export default function createElement(tag, data = {}, ...children) {
 }
 
 export function normalizeChildren(children) {
-  children = Array.isArray(children) ? children : children == null ? [] : [children];
-  return children.map(normalizeVNode);
+  if (Array.isArray(children)) {
+    return children.filter(shouldVNodeRender).map(normalizeVNode);
+  } else {
+    return shouldVNodeRender(children) ? [normalizeVNode(children)] : [];
+  }
 }
 
 export function normalizeVNode(vnode) {
-  if (vnode === undefined || vnode === null) vnode = '';
+  if (vnode?._isVNode) return vnode;
 
-  if (vnode._isVNode) {
-    return vnode;
-  } else {
-    return {
-      _isVNode: true,
-      _el: null,
-      type: 'TEXT',
-      text: String(vnode),
-    };
-  }
+  return {
+    _isVNode: true,
+    _el: null,
+    type: 'TEXT',
+    text: String(vnode ?? ''),
+  };
+}
+
+function shouldVNodeRender(node) {
+  // do not render any boolean or nullish value
+  return !(node === null || node === undefined || node === false || node === true);
 }

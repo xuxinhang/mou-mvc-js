@@ -1,4 +1,4 @@
-import h from './h';
+import h, { Portal } from './h';
 import { BaseComponent } from './component';
 
 export { h };
@@ -14,6 +14,7 @@ export default {
   createElement: h,
   Frag,
   Fragment,
+  Portal,
   // mount,
   // refresh,
 };

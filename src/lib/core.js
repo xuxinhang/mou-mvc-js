@@ -75,6 +75,11 @@ function mountNode(tasker, upper /* parent or host */, node, ref) {
       mountChildren(tasker, null, node);
       break;
     }
+    case 'PORTAL': {
+      node._el = queryDOMElement(node.portalTarget);
+      mountChildren(tasker, null, node);
+      break;
+    }
     case 'COMPONENT_FUNCTIONAL': {
       const subRoot = node.tag(node.props);
       mountSubRoot(tasker, null, node, null, subRoot);
@@ -147,6 +152,10 @@ function reorderChild(tasker, beforeParent, mountingSet, afterParent, beforeInde
       }
       break;
     }
+    case 'PORTAL': {
+      // there is no need to move the portal node
+      break;
+    }
     case 'COMPONENT_FUNCTIONAL': {
       // TODO to call vdomInsert, instead of reorderChild
       reorderChild(tasker, beforeNode, [], afterNode, 0, 0, null);
@@ -182,6 +191,10 @@ function unmountNode(tasker, upper /* parent or host */, node) {
       break;
     }
     case 'FRAGMENT': {
+      unmountChildren(tasker, node);
+      break;
+    }
+    case 'PORTAL': {
       unmountChildren(tasker, node);
       break;
     }
@@ -244,6 +257,11 @@ function diffNode(tasker, beforeNode, afterNode) {
     }
     case 'FRAGMENT': {
       // the fragment node has no its own prop, so just diff its children
+      diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
+      break;
+    }
+    case 'PORTAL': {
+      // just diff its children for a portal node
       diffChildren(tasker, beforeNode, afterNode, beforeNode.children, afterNode.children);
       break;
     }
@@ -401,10 +419,14 @@ function isNodeDiffable(a, b) {
   return true;
 }
 
+function queryDOMElement(o) {
+  return typeof o === 'string' ? document.querySelector(o) : o;
+}
+
 export function isNotEntityNode(node) {
   return (
     node.type === 'FRAGMENT' ||
-    node.type === 'PROTAL' ||
+    // node.type === 'PORTAL' ||
     node.type === 'COMPONENT_FUNCTIONAL' ||
     node.type === 'COMPONENT_STATEFUL'
   );

@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "parcel src/play/*.html",
-    "build": "parcel build src/play/*.html",
+    "dev": "parcel src/play/**/*.html",
+    "build": "parcel build src/play/**/*.html",
     "test:karma": "karma start"
   },
   "author": "",

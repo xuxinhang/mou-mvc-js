@@ -1,3 +1,8 @@
+/**
+ * Functions for patching the own props of element nodes,and mapping to operation to DOM node
+ * including DOM props, attribute, event listeners, class name and style.
+ */
+
 import classnames from 'classnames';
 import { isNullOrUndef } from './toolkit';
 

@@ -1,7 +1,8 @@
-/* vdom ops */
+/**
+ * Map the operation to entity vnodes to that to DOM nodes
+ */
 
-import { isEntityNode } from './core';
-import { getChildOrSubRootOrMountingNode } from './toolkit';
+import { getChildOrSubRootOrMountingNode, isEntityNode } from './toolkit';
 
 export function vdomInsert(
   tasker,

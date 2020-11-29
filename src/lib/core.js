@@ -422,16 +422,3 @@ function isNodeDiffable(a, b) {
 function queryDOMElement(o) {
   return typeof o === 'string' ? document.querySelector(o) : o;
 }
-
-export function isNotEntityNode(node) {
-  return (
-    node.type === 'FRAGMENT' ||
-    // node.type === 'PORTAL' ||
-    node.type === 'COMPONENT_FUNCTIONAL' ||
-    node.type === 'COMPONENT_STATEFUL'
-  );
-}
-
-export function isEntityNode(node) {
-  return !isNotEntityNode(node);
-}

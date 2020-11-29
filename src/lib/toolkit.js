@@ -1,3 +1,19 @@
+/**
+ * Some useful util functions are provided
+ */
+
+export function isEntityNode(node) {
+  switch (node.type) {
+    case 'MOUNTING_HOST_ELEMENT':
+    case 'ELEMENT':
+    case 'TEXT':
+    case 'PORTAL':
+      return true;
+    default:
+      return false;
+  }
+}
+
 export function isVNodeLinkedToDOMNode(vnode) {
   return (vnode._el || vnode.type === 'FRAGMENT') && (vnode.children ?? []).every(c => isVNodeLinkedToDOMNode(c));
 }
